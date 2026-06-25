@@ -27,13 +27,32 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 #vsec{flex-shrink:0;position:relative;background:#000;}
 #vid{width:100%;display:block;height:210px;background:#000;object-fit:contain;}
 
-/* FULLSCREEN */
-body.fsm #app{display:block;}
-body.fsm #vsec{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;
-  display:flex;flex-direction:column;background:#000;}
-body.fsm #vid{flex:1;width:100%;height:0!important;object-fit:contain;}
-body.fsm #cbar{position:relative;flex-shrink:0;}
+/* FULLSCREEN — native (desktop) + CSS fallback (mobile) */
+/* When fullscreen: hide ALL Telegram UI, show ONLY the player */
+body.fsm{overflow:hidden;}
+body.fsm #app{display:block;position:fixed;inset:0;z-index:99998;}
+body.fsm #hdr{display:none!important;}
+body.fsm #catbar{display:none!important;}
+body.fsm #tabs{display:none!important;}
+body.fsm #content{display:none!important;}
+body.fsm #vsec{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;
+  background:#000;display:flex;align-items:center;justify-content:center;}
+body.fsm #vid{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:100vw;height:100vh;
+  object-fit:contain;display:block;}
+body.fsm #cbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:100000;
+  background:linear-gradient(transparent,rgba(0,0,0,.92));padding:8px 14px;}
 body.fsm #vst{z-index:100001;}
+body.fsm #fovbar{z-index:100001;}
+body.fsm #iplay{z-index:100002;}
+body.fsm #fs-hint{display:flex;}
+#fs-hint{display:none;position:fixed;top:12px;right:14px;z-index:100003;
+  background:rgba(0,0,0,.55);color:rgba(255,255,255,.5);
+  font-size:11px;padding:4px 10px;border-radius:20px;pointer-events:none;}
 
 /* PORTRAIT */
 body.rot #vsec{position:fixed;top:0;left:0;z-index:99999;
@@ -172,6 +191,7 @@ body.rot #cbar{position:relative;flex-shrink:0;}
       <div id="iplay-ic">▶</div>
       <div id="iplay-tx">Tap to play</div>
     </div>
+    <div id="fs-hint">Press Esc to exit fullscreen</div>
     <div id="cbar">
       <button class="cb" id="mbtn" onclick="toggleMute()">🔊</button>
       <div id="qw">
@@ -201,7 +221,17 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 <script>
 // ── Telegram ──────────────────────────────────────────────────
 const TG = window.Telegram && window.Telegram.WebApp;
-if(TG){ TG.ready(); TG.expand(); }
+if(TG){
+  TG.ready();
+  TG.expand();
+  // Request fullscreen capability from Telegram (desktop & mobile)
+  if(TG.requestFullscreen) TG.requestFullscreen();
+  // Hide Telegram header bar to give more space to the player
+  if(TG.setHeaderColor) TG.setHeaderColor("#0a0a0f");
+  if(TG.setBackgroundColor) TG.setBackgroundColor("#0a0a0f");
+  // Hide back button if shown
+  if(TG.BackButton && TG.BackButton.isVisible) TG.BackButton.hide();
+}
 
 // ── Detect iPhone/iOS ─────────────────────────────────────────
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -561,29 +591,65 @@ function togglePortrait(){
 }
 
 // ── Fullscreen ────────────────────────────────────────────────
+// Desktop: requests fullscreen on document.documentElement (whole page)
+// so Telegram's header/footer/chrome is hidden and ONLY the player shows.
+// Mobile fallback: CSS fullscreen via body class.
 function toggleFS(){
   if(rotOn){toast("Exit portrait first");return;}
-  const isNat=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  const isNat=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
   if(natFS||isNat){exitNatFS();return;}
   if(fsOn){exitCssFS();return;}
-  const sec=document.getElementById("vsec");
-  const req=sec.requestFullscreen||sec.webkitRequestFullscreen;
-  if(req) req.call(sec).then(()=>{natFS=true;fbtn.textContent="✕";}).catch(()=>enterCssFS());
-  else enterCssFS();
+
+  // Try native fullscreen on the ENTIRE document (hides Telegram chrome on desktop)
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+  if(req){
+    req.call(el)
+      .then(()=>{
+        natFS=true;
+        fbtn.textContent="✕";
+        document.body.classList.add("fsm"); // also apply CSS so video fills screen
+      })
+      .catch(()=>enterCssFS()); // fallback if browser blocks
+  } else {
+    enterCssFS(); // last resort CSS fallback
+  }
 }
-function enterCssFS(){ fsOn=true; document.body.classList.add("fsm"); fbtn.textContent="✕"; }
-function exitCssFS(){  fsOn=false; document.body.classList.remove("fsm"); fbtn.textContent="⛶"; }
-function exitNatFS(){  (document.exitFullscreen||document.webkitExitFullscreen).call(document).catch(()=>{}); }
+
+function enterCssFS(){
+  fsOn=true;
+  document.body.classList.add("fsm");
+  fbtn.textContent="✕";
+}
+function exitCssFS(){
+  fsOn=false;
+  document.body.classList.remove("fsm");
+  fbtn.textContent="⛶";
+}
+function exitNatFS(){
+  const exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  if(exit) exit.call(document).catch(()=>{});
+}
 function exitFS(){ if(fsOn)exitCssFS(); if(natFS)exitNatFS(); }
-["fullscreenchange","webkitfullscreenchange"].forEach(ev=>{
+
+["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"].forEach(ev=>{
   document.addEventListener(ev,()=>{
-    const on=!!(document.fullscreenElement||document.webkitFullscreenElement);
-    natFS=on; fbtn.textContent=on?"✕":"⛶";
-    if(!on) document.body.classList.remove("fsm");
+    const on=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
+    if(!on){
+      // Exited fullscreen
+      natFS=false;
+      fsOn=false;
+      fbtn.textContent="⛶";
+      document.body.classList.remove("fsm");
+    }
   });
 });
+
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){ if(fsOn)exitCssFS(); if(rotOn){rotOn=false;document.body.classList.remove("rot");pbtn.textContent="⟳";} }
+  if(e.key==="Escape"){
+    if(fsOn) exitCssFS();
+    if(rotOn){rotOn=false;document.body.classList.remove("rot");pbtn.textContent="⟳";}
+  }
 });
 
 // ── Tabs ──────────────────────────────────────────────────────
