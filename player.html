@@ -25,7 +25,7 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 
 /* VIDEO */
 #vsec{flex-shrink:0;position:relative;background:#000;}
-#vid{width:100%;display:block;height:210px;background:#000;object-fit:contain;}
+#vid{width:100%;display:block;height:clamp(210px, 38vh, 520px);background:#000;object-fit:contain;}
 
 /* FULLSCREEN — native (desktop) + CSS fallback (mobile) */
 /* When fullscreen: hide ALL Telegram UI, show ONLY the player */
@@ -160,6 +160,35 @@ body.rot #cbar{position:relative;flex-shrink:0;}
   padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;pointer-events:none;
   transition:opacity .28s;z-index:999999;white-space:nowrap;max-width:88vw;text-align:center;}
 #toast.show{opacity:1;}
+
+/* ── DESKTOP responsive layout ─────────────────────────────── */
+@media (min-width: 600px){
+  #vid{height:clamp(300px, 45vh, 600px) !important;}
+  #hdr{padding:10px 18px;}
+  #chnm{font-size:16px;}
+  #spbtn{font-size:12px;padding:4px 12px;}
+  #catbar{padding:8px 14px;gap:8px;}
+  .cfbtn{padding:6px 16px;font-size:12px;}
+  .tab{padding:10px 6px;font-size:13px;}
+  #chlist{padding:10px 12px;}
+  .chi{padding:11px 14px;margin-bottom:6px;}
+  .chiico{width:42px;height:42px;font-size:20px;}
+  .chtit{font-size:14px;}
+  .chcat{font-size:11px;}
+  .cb{width:38px;height:38px;font-size:16px;}
+}
+@media (min-width: 900px){
+  #vid{height:clamp(420px, 50vh, 680px) !important;}
+  #hdr{padding:11px 22px;}
+  #chnm{font-size:17px;}
+  .cfbtn{padding:7px 18px;font-size:13px;}
+  .chtit{font-size:15px;}
+  .chi{padding:12px 16px;}
+  .chiico{width:46px;height:46px;font-size:22px;}
+}
+@media (min-width:1200px){
+  #vid{height:clamp(500px, 55vh, 780px) !important;}
+}
 </style>
 </head>
 <body>
