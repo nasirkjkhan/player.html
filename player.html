@@ -189,6 +189,20 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 @media (min-width:1200px){
   #vid{height:clamp(500px, 55vh, 780px) !important;}
 }
+
+/* Native fullscreen on video element itself */
+#vid:-webkit-full-screen { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
+#vid:-moz-full-screen    { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
+#vid:-ms-fullscreen      { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
+#vid:fullscreen          { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
+
+/* Native fullscreen on vsec container */
+#vsec:-webkit-full-screen { width:100vw !important; height:100vh !important; background:#000; display:flex; align-items:center; justify-content:center; }
+#vsec:fullscreen          { width:100vw !important; height:100vh !important; background:#000; display:flex; align-items:center; justify-content:center; }
+#vsec:-webkit-full-screen #vid { width:100vw !important; height:100vh !important; object-fit:contain; }
+#vsec:fullscreen #vid          { width:100vw !important; height:100vh !important; object-fit:contain; }
+#vsec:-webkit-full-screen #cbar { position:fixed; bottom:0; left:0; right:0; }
+#vsec:fullscreen #cbar           { position:fixed; bottom:0; left:0; right:0; }
 </style>
 </head>
 <body>
@@ -625,39 +639,69 @@ function togglePortrait(){
 // Mobile fallback: CSS fullscreen via body class.
 function toggleFS(){
   if(rotOn){toast("Exit portrait first");return;}
-  const isNat=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
-  if(natFS||isNat){exitNatFS();return;}
-  if(fsOn){exitCssFS();return;}
 
-  // Try native fullscreen on the ENTIRE document (hides Telegram chrome on desktop)
-  const el=document.documentElement;
-  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-  if(req){
-    req.call(el)
-      .then(()=>{
-        natFS=true;
-        fbtn.textContent="✕";
-        document.body.classList.add("fsm"); // also apply CSS so video fills screen
-      })
-      .catch(()=>enterCssFS()); // fallback if browser blocks
-  } else {
-    enterCssFS(); // last resort CSS fallback
-  }
+  // Already in some fullscreen → exit
+  const isNat=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
+  if(natFS||isNat){ exitNatFS(); return; }
+  if(fsOn){ exitCssFS(); return; }
+
+  // Strategy 1: Try fullscreen on the video element itself
+  // (works inside Telegram iframe sandbox on desktop)
+  const tryVideoFS = ()=>{
+    const v = document.getElementById("vid");
+    const req = v.requestFullscreen || v.webkitRequestFullscreen || v.mozRequestFullScreen || v.msRequestFullscreen;
+    if(req){
+      return req.call(v).then(()=>{ natFS=true; fbtn.textContent="✕"; }).catch(()=>false);
+    }
+    return Promise.reject("no api");
+  };
+
+  // Strategy 2: Try fullscreen on the vsec container
+  const trySecFS = ()=>{
+    const sec = document.getElementById("vsec");
+    const req = sec.requestFullscreen || sec.webkitRequestFullscreen || sec.mozRequestFullScreen || sec.msRequestFullscreen;
+    if(req){
+      return req.call(sec).then(()=>{ natFS=true; fbtn.textContent="✕"; document.body.classList.add("fsm"); }).catch(()=>false);
+    }
+    return Promise.reject("no api");
+  };
+
+  // Strategy 3: Try fullscreen on documentElement (works outside iframe)
+  const tryDocFS = ()=>{
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if(req){
+      return req.call(el).then(()=>{ natFS=true; fbtn.textContent="✕"; document.body.classList.add("fsm"); }).catch(()=>false);
+    }
+    return Promise.reject("no api");
+  };
+
+  // Try all strategies in order, fall back to CSS fullscreen
+  tryDocFS()
+    .catch(()=> trySecFS())
+    .catch(()=> tryVideoFS())
+    .catch(()=> { enterCssFS(); });
 }
 
 function enterCssFS(){
   fsOn=true;
   document.body.classList.add("fsm");
   fbtn.textContent="✕";
+  document.getElementById("fs-hint").style.display="flex";
+  toast("📺 Fullscreen — press Esc or ✕ to exit");
 }
 function exitCssFS(){
   fsOn=false;
   document.body.classList.remove("fsm");
   fbtn.textContent="⛶";
+  document.getElementById("fs-hint").style.display="none";
 }
 function exitNatFS(){
-  const exit=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  const exit = document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
   if(exit) exit.call(document).catch(()=>{});
+  // Also clean up CSS class in case it was applied
+  document.body.classList.remove("fsm");
+  document.getElementById("fs-hint").style.display="none";
 }
 function exitFS(){ if(fsOn)exitCssFS(); if(natFS)exitNatFS(); }
 
@@ -665,11 +709,10 @@ function exitFS(){ if(fsOn)exitCssFS(); if(natFS)exitNatFS(); }
   document.addEventListener(ev,()=>{
     const on=!!(document.fullscreenElement||document.webkitFullscreenElement||document.mozFullScreenElement||document.msFullscreenElement);
     if(!on){
-      // Exited fullscreen
-      natFS=false;
-      fsOn=false;
+      natFS=false; fsOn=false;
       fbtn.textContent="⛶";
       document.body.classList.remove("fsm");
+      document.getElementById("fs-hint").style.display="none";
     }
   });
 });
@@ -677,7 +720,7 @@ function exitFS(){ if(fsOn)exitCssFS(); if(natFS)exitNatFS(); }
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"){
     if(fsOn) exitCssFS();
-    if(rotOn){rotOn=false;document.body.classList.remove("rot");pbtn.textContent="⟳";}
+    if(rotOn){ rotOn=false; document.body.classList.remove("rot"); pbtn.textContent="⟳"; }
   }
 });
 
