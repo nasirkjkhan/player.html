@@ -130,19 +130,8 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 }
 #msbtn:active{transform:scale(.9);}
 
-/* Select-screen highlight when clicking channel in multi mode */
-.pslot.pick-me{
-  cursor:pointer;
-}
-.pick-banner{
-  display:none;
-  position:absolute;inset:0;
-  background:rgba(233,69,96,.18);
-  align-items:center;justify-content:center;
-  z-index:28;pointer-events:none;
-  font-size:13px;color:var(--r);font-weight:700;
-}
-.pslot.pick-me .pick-banner{display:flex;}
+/* Select-screen highlight when clicking in multi mode */
+.pslot.pick-me{ cursor:pointer; }
 
 /* STATE per slot */
 .vst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -297,7 +286,6 @@ body.rot .cbar{position:relative;flex-shrink:0;}
     <!-- SLOT 1 (primary, always visible) -->
     <div class="pslot active-slot" id="slot1">
       <div class="slot-label">📺 Screen 1</div>
-      <div class="pick-banner">▶ Tap to select Screen 1</div>
       <div class="fovbar" id="fovbar1"></div>
       <video class="slot-vid" id="vid1" playsinline webkit-playsinline preload="auto"></video>
       <div class="vst" id="vst1">
@@ -334,7 +322,6 @@ body.rot .cbar{position:relative;flex-shrink:0;}
     <!-- SLOT 2 (secondary, shown only in multi mode) -->
     <div class="pslot" id="slot2">
       <div class="slot-label">📺 Screen 2</div>
-      <div class="pick-banner">▶ Tap to select Screen 2</div>
       <div class="fovbar" id="fovbar2"></div>
       <video class="slot-vid" id="vid2" playsinline webkit-playsinline preload="auto"></video>
       <div class="vst" id="vst2">
@@ -488,7 +475,7 @@ function toggleMultiScreen(){
     // Reset pick state to slot1
     pickingSlot = 0;
     setActiveSlot(0);
-    toast("📺📺 Multi Screen ON — pick a channel for Screen 2");
+    toast("📺📺 Multi Screen ON");
     buildList();
     // Show slot2 controls LIVE label hidden until something plays
     livlbl2.style.display="none";
@@ -523,16 +510,15 @@ function setActiveSlot(si){
 // Clicking on a slot to "select" it as target for next channel pick
 slots[0].addEventListener("click", e=>{
   if(!multiOn) return;
-  // Only respond if click is not on a button
   if(e.target.closest("button,.cb,.qbtn,.qmenu")) return;
   setActiveSlot(0);
-  toast("Screen 1 selected — tap a channel");
+  toast("Screen 1 selected");
 });
 slots[1].addEventListener("click", e=>{
   if(!multiOn) return;
   if(e.target.closest("button,.cb,.qbtn,.qmenu")) return;
   setActiveSlot(1);
-  toast("Screen 2 selected — tap a channel");
+  toast("Screen 2 selected");
 });
 
 // ── Category bar ──────────────────────────────────────────────
