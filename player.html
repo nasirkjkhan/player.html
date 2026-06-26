@@ -31,14 +31,24 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
   background:#000;
   position:relative;
 }
-/* When multi-screen is ON, show both players side by side on desktop */
+/* When multi-screen is ON, ALWAYS side by side (left/right) on all devices */
 #players-wrap.multi{
-  flex-direction:column; /* mobile default: top/bottom */
+  flex-direction:row !important;
+}
+/* Each slot takes exactly half width */
+#players-wrap.multi .pslot{
+  flex:1;
+  min-width:0;
+}
+/* Video height in multi mode - balanced for mobile and desktop */
+#players-wrap.multi .slot-vid{
+  height:clamp(130px,24vw,340px) !important;
 }
 @media(min-width:600px){
-  #players-wrap.multi{
-    flex-direction:row; /* desktop: side by side */
-  }
+  #players-wrap.multi .slot-vid{ height:clamp(200px,30vw,440px)!important; }
+}
+@media(min-width:900px){
+  #players-wrap.multi .slot-vid{ height:clamp(280px,34vw,520px)!important; }
 }
 
 /* Each player slot */
@@ -168,10 +178,11 @@ body.fsm .cbar{position:absolute!important;bottom:0!important;left:0!important;r
 #fs-hint{display:none;position:fixed;top:12px;right:14px;z-index:100003;background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);font-size:11px;padding:4px 10px;border-radius:20px;pointer-events:none;align-items:center;gap:5px;}
 body.fsm #fs-hint{display:flex!important;}
 
-/* PORTRAIT */
-body.rot #players-wrap{position:fixed;top:0;left:0;z-index:99999;width:100vh;height:100vw;transform:rotate(90deg) translateX(0) translateY(-100%);transform-origin:top left;background:#000;display:flex;flex-direction:column;}
-body.rot .slot-vid{flex:1;width:100%;height:0!important;object-fit:contain;}
-body.rot .cbar{position:relative;flex-shrink:0;}
+/* PORTRAIT — uses screen orientation lock (no broken CSS transform) */
+/* Multi screen in portrait: always left/right side by side */
+body.rot #players-wrap.multi{ flex-direction:row!important; }
+body.rot #players-wrap.multi .pslot{ flex:1; }
+body.rot #players-wrap.multi .slot-vid{ height:clamp(110px,20vw,220px)!important; }
 
 /* PiP overlay */
 #pip-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:50;cursor:pointer;}
@@ -463,6 +474,7 @@ async function boot(){
 boot();
 
 // ── Multi-Screen ──────────────────────────────────────────────
+// when multi-screen is activated, slot2 starts muted to avoid audio clash
 function toggleMultiScreen(){
   multiOn = !multiOn;
   const wrap = document.getElementById("players-wrap");
@@ -472,17 +484,15 @@ function toggleMultiScreen(){
   msbtn.textContent = multiOn ? "⊟" : "⊞";
 
   if(multiOn){
-    // Reset pick state to slot1
     pickingSlot = 0;
     setActiveSlot(0);
+    // Auto-mute slot2 so both audios don't fight
+    mutedS[1]=true; vids[1].muted=true; mbtnEls[1].textContent="🔇";
     toast("📺📺 Multi Screen ON");
     buildList();
-    // Show slot2 controls LIVE label hidden until something plays
     livlbl2.style.display="none";
-    // Show vst2 with prompt
     showSt(1,"Select a channel",false,"Tap a channel to play on Screen 2");
   } else {
-    // Turn off slot2
     destroyHls(1);
     vids[1].pause();
     CUR[1] = -1;
@@ -654,13 +664,24 @@ function tryNext(si, url){
 function tryHLS(si, url){
   destroyHls(si);
   const vid=vids[si];
+  // Reduce buffer aggressively for slot2 (or when multi is on) to prevent mobile freeze
+  const isSecondary = si===1 || (si===0 && multiOn);
+  const bufLen  = isSecondary ? 8  : 20;
+  const maxBuf  = isSecondary ? 16 : 40;
+  const backBuf = isSecondary ? 4  : 10;
+
   if(Hls.isSupported()){
     const h=new Hls({
-      enableWorker:true,startLevel:-1,
-      abrEwmaDefaultEstimate:500000,abrBandWidthFactor:.8,abrBandWidthUpFactor:.7,
-      maxBufferLength:20,maxMaxBufferLength:40,backBufferLength:10,
-      manifestLoadingMaxRetry:2,levelLoadingMaxRetry:2,fragLoadingMaxRetry:2,
+      enableWorker:true, startLevel:-1,
+      abrEwmaDefaultEstimate: isSecondary ? 300000 : 500000,
+      abrBandWidthFactor:.8, abrBandWidthUpFactor:.7,
+      maxBufferLength: bufLen,
+      maxMaxBufferLength: maxBuf,
+      backBufferLength: backBuf,
+      manifestLoadingMaxRetry:2, levelLoadingMaxRetry:2, fragLoadingMaxRetry:2,
       manifestLoadingRetryDelay:600,
+      // Stagger fragment loads so both players don't hammer network at same time
+      fragLoadingRetryDelay: isSecondary ? 400 : 200,
       xhrSetup:xhr=>{ xhr.withCredentials=false; }
     });
     hlsObj[si]=h;
@@ -801,13 +822,37 @@ function updateNetLbl(si){
 // ── Mute ──────────────────────────────────────────────────────
 function toggleMute(si){ mutedS[si]=!mutedS[si]; vids[si].muted=mutedS[si]; mbtnEls[si].textContent=mutedS[si]?"🔇":"🔊"; toast(mutedS[si]?"🔇 Screen "+(si+1)+" Muted":"🔊 Screen "+(si+1)+" Sound On"); }
 
-// ── Portrait ──────────────────────────────────────────────────
+// ── Portrait / Landscape lock ─────────────────────────────────
 let rotOn=false;
-function togglePortrait(){
-  rotOn=!rotOn; document.body.classList.toggle("rot",rotOn);
+async function togglePortrait(){
+  rotOn=!rotOn;
   pbtn.textContent=rotOn?"↺":"⟳";
-  if(rotOn&&(fsOn||natFS)) exitFS();
-  toast(rotOn?"📱 Portrait — tap ↺ to restore":"↩️ Normal view");
+
+  // Try Screen Orientation API first (works on Android Chrome, Samsung etc.)
+  const ori = screen.orientation || screen.msOrientation;
+  if(ori && ori.lock){
+    try{
+      if(rotOn){
+        await ori.lock("landscape");
+        toast("📱 Landscape locked");
+      } else {
+        ori.unlock();
+        toast("↩️ Orientation unlocked");
+      }
+      document.body.classList.toggle("rot", rotOn);
+      return;
+    }catch(e){
+      // API exists but denied (iOS, desktop) — fall through to CSS fallback
+    }
+  }
+
+  // iOS/desktop fallback: just toggle class for layout hint, no rotation
+  document.body.classList.toggle("rot", rotOn);
+  if(rotOn){
+    toast("📱 Rotate your device to landscape");
+  } else {
+    toast("↩️ Normal view");
+  }
 }
 
 // ── Picture-in-Picture ────────────────────────────────────────
@@ -854,7 +899,6 @@ function returnFromPiP(){
 // ── Fullscreen ────────────────────────────────────────────────
 let fsOn=false, natFS=false;
 function toggleFS(){
-  if(rotOn){ toast("Exit portrait first"); return; }
   if(fsOn||natFS||document.fullscreenElement||document.webkitFullscreenElement){ doExitFS(); return; }
   enterCssFS();
   const targets=[document.getElementById("players-wrap"),document.documentElement];
@@ -892,7 +936,10 @@ function exitFS(){ doExitFS(); }
   });
 });
 document.addEventListener("keydown",e=>{
-  if(e.key==="Escape"){ if(fsOn||natFS) doExitFS(); if(rotOn){ rotOn=false; document.body.classList.remove("rot"); pbtn.textContent="⟳"; } }
+  if(e.key==="Escape"){
+    if(fsOn||natFS) doExitFS();
+    if(rotOn){ rotOn=false; document.body.classList.remove("rot"); pbtn.textContent="⟳"; if(screen.orientation&&screen.orientation.unlock) screen.orientation.unlock(); }
+  }
 });
 
 // ── Tabs ──────────────────────────────────────────────────────
