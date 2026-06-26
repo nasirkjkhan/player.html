@@ -27,28 +27,9 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 #players-wrap{
   flex-shrink:0;
   display:flex;
-  flex-direction:column; /* mobile: stack vertically */
+  flex-direction:column;
   background:#000;
   position:relative;
-}
-/* When multi-screen is ON, ALWAYS side by side (left/right) on all devices */
-#players-wrap.multi{
-  flex-direction:row !important;
-}
-/* Each slot takes exactly half width */
-#players-wrap.multi .pslot{
-  flex:1;
-  min-width:0;
-}
-/* Video height in multi mode - balanced for mobile and desktop */
-#players-wrap.multi .slot-vid{
-  height:clamp(130px,24vw,340px) !important;
-}
-@media(min-width:600px){
-  #players-wrap.multi .slot-vid{ height:clamp(200px,30vw,440px)!important; }
-}
-@media(min-width:900px){
-  #players-wrap.multi .slot-vid{ height:clamp(280px,34vw,520px)!important; }
 }
 
 /* Each player slot */
@@ -58,9 +39,29 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
   flex:1;
   min-height:0;
 }
-/* Single slot takes full width */
+/* Single slot: hide slot2 */
 #players-wrap:not(.multi) .pslot:nth-child(2){
   display:none;
+}
+
+/* MOBILE multi (< 600px): Screen1 top, Screen2 bottom */
+@media(max-width:599px){
+  #players-wrap.multi{ flex-direction:column; }
+  #players-wrap.multi .pslot{ flex:none; width:100%; }
+  #players-wrap.multi .slot-vid{ height:clamp(120px,26vh,280px) !important; }
+}
+
+/* DESKTOP multi (>= 600px): Screen1 left, Screen2 right */
+@media(min-width:600px){
+  #players-wrap.multi{ flex-direction:row; }
+  #players-wrap.multi .pslot{ flex:1; min-width:0; }
+  #players-wrap.multi .slot-vid{ height:clamp(200px,38vh,480px) !important; }
+}
+@media(min-width:900px){
+  #players-wrap.multi .slot-vid{ height:clamp(300px,44vh,560px)!important; }
+}
+@media(min-width:1200px){
+  #players-wrap.multi .slot-vid{ height:clamp(360px,46vh,620px)!important; }
 }
 /* Active slot indicator ring */
 .pslot.active-slot::after{
@@ -83,27 +84,22 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 }
 #players-wrap.multi .slot-label{display:block;}
 
-/* VIDEO inside each slot */
+/* VIDEO inside each slot — single screen heights */
 .slot-vid{
   width:100%;display:block;
   height:clamp(175px,34vh,500px);
   background:#000;object-fit:contain;
 }
-#players-wrap.multi .slot-vid{
-  height:clamp(150px,28vh,420px);
-}
 @media(min-width:600px){
   .slot-vid{height:clamp(260px,42vh,560px)!important;}
-  #players-wrap.multi .slot-vid{height:clamp(200px,38vh,480px)!important;}
 }
 @media(min-width:900px){
   .slot-vid{height:clamp(380px,48vh,660px)!important;}
-  #players-wrap.multi .slot-vid{height:clamp(300px,44vh,580px)!important;}
 }
 @media(min-width:1200px){
   .slot-vid{height:clamp(460px,52vh,740px)!important;}
-  #players-wrap.multi .slot-vid{height:clamp(350px,46vh,620px)!important;}
 }
+/* Multi screen heights are handled per breakpoint below in the MULTI-SCREEN section */
 
 /* CONTROLS per slot */
 .cbar{
@@ -171,18 +167,34 @@ body.fsm #hdr    {display:none!important;}
 body.fsm #catbar {display:none!important;}
 body.fsm #tabs   {display:none!important;}
 body.fsm #content{display:none!important;}
+/* fullscreen single: fill entire space */
 body.fsm #players-wrap{flex:1!important;position:relative!important;width:100vw!important;height:100%!important;min-height:0!important;}
-body.fsm .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;max-width:100vw!important;max-height:100vh!important;object-fit:contain!important;}
+body.fsm #players-wrap:not(.multi) .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+/* fullscreen multi: side by side, each fills full height */
+body.fsm #players-wrap.multi{flex-direction:row!important;}
+body.fsm #players-wrap.multi .pslot{flex:1!important;min-width:0!important;height:100%!important;position:relative!important;}
+body.fsm #players-wrap.multi .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
 body.fsm .cbar{position:absolute!important;bottom:0!important;left:0!important;right:0!important;z-index:100000!important;background:linear-gradient(transparent,rgba(0,0,0,.92))!important;padding:8px 14px!important;}
 
 #fs-hint{display:none;position:fixed;top:12px;right:14px;z-index:100003;background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);font-size:11px;padding:4px 10px;border-radius:20px;pointer-events:none;align-items:center;gap:5px;}
 body.fsm #fs-hint{display:flex!important;}
 
-/* PORTRAIT — uses screen orientation lock (no broken CSS transform) */
-/* Multi screen in portrait: always left/right side by side */
-body.rot #players-wrap.multi{ flex-direction:row!important; }
-body.rot #players-wrap.multi .pslot{ flex:1; }
-body.rot #players-wrap.multi .slot-vid{ height:clamp(110px,20vw,220px)!important; }
+/* PORTRAIT LANDSCAPE LOCK */
+/* Single screen portrait: fills available height nicely */
+body.rot #players-wrap{ background:#000; }
+
+/* Multi screen in landscape-locked portrait: left/right side by side */
+body.rot #players-wrap.multi{
+  flex-direction:row !important;
+}
+body.rot #players-wrap.multi .pslot{
+  flex:1 !important;
+  min-width:0 !important;
+}
+/* In landscape orientation (portrait-lock), height is the shorter dimension */
+body.rot #players-wrap.multi .slot-vid{
+  height:clamp(140px,45vw,380px) !important;
+}
 
 /* PiP overlay */
 #pip-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:50;cursor:pointer;}
