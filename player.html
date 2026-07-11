@@ -310,49 +310,74 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 .rec-item.active .rec-name{color:var(--r);}
 #rec-section.empty{display:none;}
 
-/* ── MULTI SCREEN ───────────────────────────────────────────── */
+/* ── MULTI SCREEN ────────────────────────────────────────────── */
+/* single-view wraps the main video — fills vsec normally */
+#single-view{
+  width:100%; height:100%;
+  position:absolute; top:0; left:0;
+}
+#single-view video{
+  width:100%; height:100%;
+  object-fit:contain; display:block; background:#000;
+}
+
+/* ms-wrap: hidden by default, fills same vsec space as single-view */
 #ms-wrap{
-  display:none;flex-shrink:0;
-  background:#000;
+  display:none;
+  position:absolute; top:0; left:0;
+  width:100%; height:100%;
   flex-direction:row;
-  height:210px;
+  background:#000;
+  z-index:5;
 }
 #ms-wrap.active{ display:flex; }
+
+/* Each screen takes exactly half the space */
 #ms-left, #ms-right{
-  flex:1;position:relative;background:#000;
-  border:1px solid #1a1a2a;
+  flex:1; position:relative; background:#000;
+  border:1px solid rgba(233,69,96,.2);
+  overflow:hidden;
 }
 #ms-left video, #ms-right video{
-  width:100%;height:100%;object-fit:contain;display:block;
+  width:100%; height:100%;
+  object-fit:contain; display:block;
 }
+
+/* Screen label badge */
 .ms-label{
-  position:absolute;top:4px;left:6px;z-index:5;
-  font-size:9px;font-weight:700;
-  background:rgba(233,69,96,.8);color:#fff;
-  padding:2px 7px;border-radius:10px;
+  position:absolute; top:5px; left:6px; z-index:10;
+  font-size:9px; font-weight:700; letter-spacing:.3px;
+  background:rgba(233,69,96,.85); color:#fff;
+  padding:2px 8px; border-radius:10px;
+  white-space:nowrap; max-width:120px;
+  overflow:hidden; text-overflow:ellipsis;
 }
+
+/* Close screen 2 button */
 .ms-close{
-  position:absolute;top:4px;right:6px;z-index:5;
-  background:rgba(0,0,0,.7);color:#fff;border:none;
-  border-radius:50%;width:20px;height:20px;
-  font-size:11px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
+  position:absolute; top:4px; right:6px; z-index:10;
+  background:rgba(0,0,0,.75); color:#fff; border:none;
+  border-radius:50%; width:22px; height:22px;
+  font-size:12px; cursor:pointer; line-height:1;
+  display:flex; align-items:center; justify-content:center;
 }
-/* Channel list in multiscreen mode shows "Add to Screen 2" */
-.chi.ms-target{ border-color:rgba(233,69,96,.5); }
+.ms-close:active{ background:rgba(233,69,96,.7); }
+
+/* Mobile: stack vertically */
+@media(max-width:500px){
+  #ms-wrap{ flex-direction:column; }
+  #ms-left, #ms-right{ flex:1; }
+}
+
+/* Hint bar */
 #ms-hint{
-  display:none;
-  background:rgba(233,69,96,.12);border-bottom:1px solid rgba(233,69,96,.25);
-  padding:6px 12px;font-size:11px;color:var(--r);
-  text-align:center;flex-shrink:0;
+  display:none; flex-shrink:0;
+  background:rgba(233,69,96,.12);
+  border-bottom:1px solid rgba(233,69,96,.25);
+  padding:6px 12px; font-size:11px; color:var(--r);
+  text-align:center;
 }
 #ms-hint.show{ display:block; }
-
-/* Responsive: stack vertically on narrow screens */
-@media(max-width:480px){
-  #ms-wrap{ flex-direction:column; height:420px; }
-  #ms-left, #ms-right{ height:50%; }
-}
 </style>
 </head>
 <body>
@@ -380,19 +405,6 @@ body.rot #cbar{position:relative;flex-shrink:0;}
   <!-- Multi Screen hint bar -->
   <div id="ms-hint">Tap any channel below to play in Screen 2</div>
 
-  <!-- Multi Screen container (hidden by default) -->
-  <div id="ms-wrap">
-    <div id="ms-left">
-      <div class="ms-label">Screen 1</div>
-      <video id="vid-ms1" playsinline webkit-playsinline preload="auto" muted></video>
-    </div>
-    <div id="ms-right">
-      <div class="ms-label">Screen 2</div>
-      <video id="vid-ms2" playsinline webkit-playsinline preload="auto" muted></video>
-      <button class="ms-close" onclick="closeScreen2()">✕</button>
-    </div>
-  </div>
-
   <!-- Recommended channels horizontal strip -->
   <div id="rec-section" class="empty">
     <div id="rec-title">Recommended</div>
@@ -401,7 +413,24 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 
   <div id="vsec">
     <div id="fovbar"></div>
-    <video id="vid" playsinline webkit-playsinline preload="auto"></video>
+
+    <!-- Single player view -->
+    <div id="single-view">
+      <video id="vid" playsinline webkit-playsinline preload="auto"></video>
+    </div>
+
+    <!-- Multi screen view (hidden by default, shown on ⊞ click) -->
+    <div id="ms-wrap">
+      <div id="ms-left">
+        <div class="ms-label" id="ms-lbl1">Screen 1</div>
+        <video id="vid-ms1" playsinline webkit-playsinline preload="auto" muted></video>
+      </div>
+      <div id="ms-right">
+        <div class="ms-label" id="ms-lbl2">Screen 2</div>
+        <video id="vid-ms2" playsinline webkit-playsinline preload="auto" muted></video>
+        <button class="ms-close" onclick="closeScreen2()">✕</button>
+      </div>
+    </div>
     <div id="vst">
       <div id="spin"></div>
       <div id="stxt">Connecting...</div>
@@ -533,7 +562,7 @@ const msWrap  = document.getElementById("ms-wrap");
 const msHint  = document.getElementById("ms-hint");
 const vidMs1  = document.getElementById("vid-ms1");
 const vidMs2  = document.getElementById("vid-ms2");
-const mainVid = document.getElementById("vid");    // original player
+// mainVid is #vid inside #single-view — not needed directly, controlled via single-view
 
 function toggleMultiScreen(){
   if(msActive){
@@ -547,9 +576,9 @@ function enterMultiScreen(){
   msActive  = true;
   msPicking = true;
 
-  // Show multiscreen wrap, hide main video
+  // Hide single view, show ms-wrap — both inside vsec so size unchanged
+  document.getElementById("single-view").style.display = "none";
   msWrap.classList.add("active");
-  mainVid.style.display = "none";
   msHint.classList.add("show");
   document.getElementById("msbtn").textContent = "✕";
 
@@ -558,11 +587,10 @@ function enterMultiScreen(){
   if(ch){
     msCh1 = ch;
     loadMsStream(ch.url, 1);
-    document.querySelector(".ms-label").textContent = "Screen 1 — " + ch.name.substring(0,12);
+    document.getElementById("ms-lbl1").textContent = "1 — " + ch.name.substring(0,14);
   }
 
   toast("Tap a channel below to play in Screen 2");
-  // rebuild channel list to show "add to screen 2" mode
   buildList();
 }
 
@@ -570,14 +598,16 @@ function exitMultiScreen(){
   msActive  = false;
   msPicking = false;
 
+  // Restore single view
+  document.getElementById("single-view").style.display = "";
   msWrap.classList.remove("active");
-  mainVid.style.display = "block";
   msHint.classList.remove("show");
   document.getElementById("msbtn").textContent = "⊞";
 
   // Destroy multiscreen HLS instances
   destroyMsHls(1);
   destroyMsHls(2);
+  vidMs1.src = ""; vidMs2.src = "";
 
   // Restore main player
   if(ALL[CUR]) loadStream(ALL[CUR].url);
@@ -642,11 +672,11 @@ function playChannelInScreen2(ch){
   destroyMsHls(2);
   vidMs2.src = "";
 
-  const label2 = document.querySelectorAll(".ms-label")[1];
-  if(label2) label2.textContent = "Screen 2 — " + ch.name.substring(0,12);
+  const lbl2 = document.getElementById("ms-lbl2");
+  if(lbl2) lbl2.textContent = "2 — " + ch.name.substring(0,14);
 
   loadMsStream(ch.url, 2);
-  buildList(); // refresh list to remove ms-target highlight
+  buildList();
   toast("Playing " + ch.name + " in Screen 2");
 }
 
