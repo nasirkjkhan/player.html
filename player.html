@@ -426,6 +426,7 @@ const JSON_URL = "https://nasirkjkhan.github.io/player.html/channels.json";
 // ── State ─────────────────────────────────────────────────────
 let ALL      = []; // flat [{name,url,cat}]
 let CUR      = 0;
+let currentOrigUrl = ""; // track original URL for proxy retry
 let hls      = null;
 let muted    = false;
 let fsOn     = false;
@@ -640,6 +641,7 @@ function play(idx){
   if(idx<0||idx>=ALL.length) return;
   CUR=idx; errCnt=0;
   const ch=ALL[idx];
+  currentOrigUrl = ch.url; // save for proxy retry
   chnmEl.textContent = ch.name;
   ctbgEl.textContent = cap(ch.cat)||"TV";
   markActive(idx);
@@ -662,13 +664,93 @@ function getStrats(url){
 }
 
 // ── Load stream ───────────────────────────────────────────────
+// ── HTTPS Proxy list for http:// streams on PC ───────────────
+// These free proxies convert http:// streams to https:// automatically
+const PROXIES = [
+  "https://corsproxy.io/?",
+  "https://api.codetabs.com/v1/proxy?quest=",
+  "https://thingproxy.freeboard.io/fetch/"
+];
+
+function needsProxy(url){
+  // PC browsers block http:// from https:// pages (Mixed Content)
+  // Mobile is lenient — no proxy needed there
+  const isHttp     = url.startsWith("http://");
+  const isSecurePage = location.protocol === "https:";
+  const isMobile   = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  return isHttp && isSecurePage && !isMobile;
+}
+
+function proxyUrl(url, proxyIdx){
+  if(proxyIdx >= PROXIES.length) return url; // no more proxies
+  return PROXIES[proxyIdx] + encodeURIComponent(url);
+}
+
 function loadStream(url){
   showSt("Connecting...",true,"");
   destroyHls();
   if(!url){ showSt("No URL.",false,""); return; }
-  strats = getStrats(url);
-  stIdx  = 0;
-  tryNext(url);
+
+  // If http:// on PC (mixed content block) → try with proxy first
+  if(needsProxy(url)){
+    showSt("Connecting...",true,"Routing via secure proxy...");
+    loadWithProxy(url, 0);
+  } else {
+    strats = getStrats(url);
+    stIdx  = 0;
+    tryNext(url);
+  }
+}
+
+// Try each proxy in order until one works
+function loadWithProxy(originalUrl, proxyIdx){
+  if(proxyIdx >= PROXIES.length){
+    // All proxies failed — try direct as last resort
+    showSt("Connecting...",true,"Trying direct...");
+    strats = getStrats(originalUrl);
+    stIdx  = 0;
+    tryNext(originalUrl);
+    return;
+  }
+
+  const proxied = proxyUrl(originalUrl, proxyIdx);
+  showSt("Connecting...",true,"Proxy " + (proxyIdx+1) + "/" + PROXIES.length + "...");
+
+  destroyHls();
+
+  if(Hls.isSupported()){
+    hls = new Hls({
+      enableWorker:true, startLevel:-1,
+      abrEwmaDefaultEstimate:500000,
+      maxBufferLength:20, backBufferLength:10,
+      manifestLoadingMaxRetry:1,
+      xhrSetup: xhr=>{ xhr.withCredentials=false; }
+    });
+    hls.loadSource(proxied);
+    hls.attachMedia(vid);
+    hls.on(Hls.Events.MANIFEST_PARSED,(e,d)=>{
+      buildQMenu(d.levels);
+      hls.currentLevel=-1;
+      vid.play().catch(()=>{
+        vid.muted=true; mbtn.textContent="🔇"; muted=true;
+        vid.play().catch(()=>{});
+      });
+      hideSt(); updateNetLbl(); errCnt=0;
+      toast("Playing via secure proxy");
+    });
+    hls.on(Hls.Events.ERROR,(e,d)=>{
+      if(d.fatal){
+        // This proxy failed — try next
+        loadWithProxy(originalUrl, proxyIdx + 1);
+      }
+    });
+  } else if(vid.canPlayType("application/vnd.apple.mpegurl")){
+    vid.src = proxied;
+    vid.onloadedmetadata = ()=>{ vid.play().catch(()=>{}); hideSt(); buildQMenu([]); };
+    vid.onerror = ()=>{ loadWithProxy(originalUrl, proxyIdx + 1); };
+  } else {
+    loadWithProxy(originalUrl, proxyIdx + 1);
+  }
 }
 
 function tryNext(url){
