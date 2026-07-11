@@ -664,26 +664,38 @@ function getStrats(url){
 }
 
 // ── Load stream ───────────────────────────────────────────────
-// ── HTTPS Proxy list for http:// streams on PC ───────────────
-// These free proxies convert http:// streams to https:// automatically
-const PROXIES = [
-  "https://corsproxy.io/?",
-  "https://api.codetabs.com/v1/proxy?quest=",
-  "https://thingproxy.freeboard.io/fetch/"
-];
+// ── Mixed Content + Universal Stream Handler ──────────────────
+// http:// streams on https:// pages need special handling on PC.
+// Strategy: use allorigins.win as a reliable HLS-compatible proxy.
+// It fetches and serves the M3U8 manifest + rewrites segment URLs.
 
-function needsProxy(url){
-  // PC browsers block http:// from https:// pages (Mixed Content)
-  // Mobile is lenient — no proxy needed there
-  const isHttp     = url.startsWith("http://");
-  const isSecurePage = location.protocol === "https:";
-  const isMobile   = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  return isHttp && isSecurePage && !isMobile;
+function isMobile(){
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-function proxyUrl(url, proxyIdx){
-  if(proxyIdx >= PROXIES.length) return url; // no more proxies
-  return PROXIES[proxyIdx] + encodeURIComponent(url);
+function isMixedContent(url){
+  return url.startsWith("http://") && location.protocol === "https:";
+}
+
+// Rewrite http:// stream URL through allorigins proxy
+// allorigins returns raw content with correct headers for HLS
+function toProxyUrl(url){
+  return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+}
+
+// For HLS.js: custom loader that rewrites ALL segment URLs through proxy
+function makeProxyLoader(originalBaseUrl){
+  const defaultLoader = Hls.DefaultConfig.loader;
+  class ProxyLoader extends defaultLoader {
+    load(context, config, callbacks){
+      // If URL is http:// rewrite through proxy
+      if(context.url && context.url.startsWith("http://")){
+        context.url = toProxyUrl(context.url);
+      }
+      super.load(context, config, callbacks);
+    }
+  }
+  return ProxyLoader;
 }
 
 function loadStream(url){
@@ -691,67 +703,118 @@ function loadStream(url){
   destroyHls();
   if(!url){ showSt("No URL.",false,""); return; }
 
-  // If http:// on PC (mixed content block) → try with proxy first
-  if(needsProxy(url)){
-    showSt("Connecting...",true,"Routing via secure proxy...");
-    loadWithProxy(url, 0);
-  } else {
+  // Mobile: play directly, no proxy needed
+  if(isMobile()){
     strats = getStrats(url);
     stIdx  = 0;
     tryNext(url);
-  }
-}
-
-// Try each proxy in order until one works
-function loadWithProxy(originalUrl, proxyIdx){
-  if(proxyIdx >= PROXIES.length){
-    // All proxies failed — try direct as last resort
-    showSt("Connecting...",true,"Trying direct...");
-    strats = getStrats(originalUrl);
-    stIdx  = 0;
-    tryNext(originalUrl);
     return;
   }
 
-  const proxied = proxyUrl(originalUrl, proxyIdx);
-  showSt("Connecting...",true,"Proxy " + (proxyIdx+1) + "/" + PROXIES.length + "...");
+  // PC with http:// stream: use proxy loader
+  if(isMixedContent(url)){
+    loadWithProxyLoader(url);
+    return;
+  }
 
-  destroyHls();
+  // PC with https:// stream: play normally
+  strats = getStrats(url);
+  stIdx  = 0;
+  tryNext(url);
+}
+
+function loadWithProxyLoader(url){
+  showSt("Connecting...",true,"Loading stream...");
 
   if(Hls.isSupported()){
+    const ProxyLoader = makeProxyLoader(url);
     hls = new Hls({
-      enableWorker:true, startLevel:-1,
-      abrEwmaDefaultEstimate:500000,
-      maxBufferLength:20, backBufferLength:10,
-      manifestLoadingMaxRetry:1,
-      xhrSetup: xhr=>{ xhr.withCredentials=false; }
-    });
-    hls.loadSource(proxied);
-    hls.attachMedia(vid);
-    hls.on(Hls.Events.MANIFEST_PARSED,(e,d)=>{
-      buildQMenu(d.levels);
-      hls.currentLevel=-1;
-      vid.play().catch(()=>{
-        vid.muted=true; mbtn.textContent="🔇"; muted=true;
-        vid.play().catch(()=>{});
-      });
-      hideSt(); updateNetLbl(); errCnt=0;
-      toast("Playing via secure proxy");
-    });
-    hls.on(Hls.Events.ERROR,(e,d)=>{
-      if(d.fatal){
-        // This proxy failed — try next
-        loadWithProxy(originalUrl, proxyIdx + 1);
+      enableWorker: false, // must be false when using custom loader
+      startLevel: -1,
+      abrEwmaDefaultEstimate: 500000,
+      abrBandWidthFactor: 0.8,
+      maxBufferLength: 20,
+      backBufferLength: 10,
+      manifestLoadingMaxRetry: 3,
+      levelLoadingMaxRetry: 3,
+      fragLoadingMaxRetry: 3,
+      loader: ProxyLoader,
+      xhrSetup: function(xhr, reqUrl){
+        xhr.withCredentials = false;
+        // Ensure all http:// XHR requests go through proxy
+        if(reqUrl && reqUrl.startsWith("http://")){
+          // HLS.js will use ProxyLoader but set CORS header
+          xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        }
       }
     });
+
+    // Load manifest through proxy
+    const proxiedManifest = toProxyUrl(url);
+    hls.loadSource(proxiedManifest);
+    hls.attachMedia(vid);
+
+    hls.on(Hls.Events.MANIFEST_PARSED, (e, d)=>{
+      buildQMenu(d.levels);
+      hls.currentLevel = -1;
+      vid.play().catch(()=>{
+        vid.muted = true;
+        mbtn.textContent = "🔇";
+        muted = true;
+        vid.play().catch(()=>{});
+      });
+      hideSt();
+      updateNetLbl();
+      errCnt = 0;
+    });
+
+    hls.on(Hls.Events.ERROR, (e, d)=>{
+      if(d.fatal){
+        if(d.type === Hls.ErrorTypes.NETWORK_ERROR && errCnt < 2){
+          errCnt++;
+          showSt("Reconnecting...",true,"");
+          hls.startLoad();
+        } else if(d.type === Hls.ErrorTypes.MEDIA_ERROR && errCnt < 2){
+          errCnt++;
+          hls.recoverMediaError();
+        } else {
+          // Proxy failed too — try direct as absolute last resort
+          showSt("Connecting...",true,"Trying direct...");
+          destroyHls();
+          hls = new Hls({
+            enableWorker:true, startLevel:-1,
+            abrEwmaDefaultEstimate:500000,
+            maxBufferLength:20, backBufferLength:10,
+          });
+          hls.loadSource(url);
+          hls.attachMedia(vid);
+          hls.on(Hls.Events.MANIFEST_PARSED,()=>{
+            vid.play().catch(()=>{});
+            hideSt();
+          });
+          hls.on(Hls.Events.ERROR,(e2,d2)=>{
+            if(d2.fatal) onFail("Stream unavailable on PC");
+          });
+        }
+      }
+    });
+
   } else if(vid.canPlayType("application/vnd.apple.mpegurl")){
-    vid.src = proxied;
+    // Safari native HLS — try proxy URL
+    vid.src = toProxyUrl(url);
     vid.onloadedmetadata = ()=>{ vid.play().catch(()=>{}); hideSt(); buildQMenu([]); };
-    vid.onerror = ()=>{ loadWithProxy(originalUrl, proxyIdx + 1); };
+    vid.onerror = ()=>{
+      // Try direct
+      vid.src = url;
+      vid.onloadedmetadata = ()=>{ vid.play().catch(()=>{}); hideSt(); };
+      vid.onerror = ()=>{ onFail("Stream unavailable"); };
+    };
   } else {
-    loadWithProxy(originalUrl, proxyIdx + 1);
+    onFail("Browser does not support HLS");
   }
 }
+
+
 
 function tryNext(url){
   if(stIdx>=strats.length){ onFail("All formats failed"); return; }
