@@ -309,6 +309,50 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 }
 .rec-item.active .rec-name{color:var(--r);}
 #rec-section.empty{display:none;}
+
+/* ── MULTI SCREEN ───────────────────────────────────────────── */
+#ms-wrap{
+  display:none;flex-shrink:0;
+  background:#000;
+  flex-direction:row;
+  height:210px;
+}
+#ms-wrap.active{ display:flex; }
+#ms-left, #ms-right{
+  flex:1;position:relative;background:#000;
+  border:1px solid #1a1a2a;
+}
+#ms-left video, #ms-right video{
+  width:100%;height:100%;object-fit:contain;display:block;
+}
+.ms-label{
+  position:absolute;top:4px;left:6px;z-index:5;
+  font-size:9px;font-weight:700;
+  background:rgba(233,69,96,.8);color:#fff;
+  padding:2px 7px;border-radius:10px;
+}
+.ms-close{
+  position:absolute;top:4px;right:6px;z-index:5;
+  background:rgba(0,0,0,.7);color:#fff;border:none;
+  border-radius:50%;width:20px;height:20px;
+  font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+/* Channel list in multiscreen mode shows "Add to Screen 2" */
+.chi.ms-target{ border-color:rgba(233,69,96,.5); }
+#ms-hint{
+  display:none;
+  background:rgba(233,69,96,.12);border-bottom:1px solid rgba(233,69,96,.25);
+  padding:6px 12px;font-size:11px;color:var(--r);
+  text-align:center;flex-shrink:0;
+}
+#ms-hint.show{ display:block; }
+
+/* Responsive: stack vertically on narrow screens */
+@media(max-width:480px){
+  #ms-wrap{ flex-direction:column; height:420px; }
+  #ms-left, #ms-right{ height:50%; }
+}
 </style>
 </head>
 <body>
@@ -331,6 +375,22 @@ body.rot #cbar{position:relative;flex-shrink:0;}
     <div id="chnm">Loading...</div>
     <div id="ctbg">TV</div>
     <a id="spbtn" href="https://t.me/FifaLiveTvChat" target="_blank">💬 Support</a>
+  </div>
+
+  <!-- Multi Screen hint bar -->
+  <div id="ms-hint">Tap any channel below to play in Screen 2</div>
+
+  <!-- Multi Screen container (hidden by default) -->
+  <div id="ms-wrap">
+    <div id="ms-left">
+      <div class="ms-label">Screen 1</div>
+      <video id="vid-ms1" playsinline webkit-playsinline preload="auto" muted></video>
+    </div>
+    <div id="ms-right">
+      <div class="ms-label">Screen 2</div>
+      <video id="vid-ms2" playsinline webkit-playsinline preload="auto" muted></video>
+      <button class="ms-close" onclick="closeScreen2()">✕</button>
+    </div>
   </div>
 
   <!-- Recommended channels horizontal strip -->
@@ -368,6 +428,7 @@ body.rot #cbar{position:relative;flex-shrink:0;}
       <span id="netlbl"></span>
       <button class="cb" id="pbtn" onclick="togglePortrait()">⟳</button>
       <button class="cb" id="pipbtn" onclick="togglePiP()" title="Mini Player">⊡</button>
+      <button class="cb" id="msbtn" onclick="toggleMultiScreen()" title="Multi Screen">⊞</button>
       <button class="cb" id="fbtn" onclick="toggleFS()">⛶</button>
       <span id="livlbl">● LIVE</span>
     </div>
@@ -461,6 +522,135 @@ const fbar  = document.getElementById("fovbar");
 const iplay = document.getElementById("iplay");
 
 // ── FETCH channels.json ───────────────────────────────────────
+// ── Multi Screen ─────────────────────────────────────────────
+let msActive   = false;  // is multi-screen mode on?
+let msHls1     = null;   // HLS instance for screen 1 (left)
+let msHls2     = null;   // HLS instance for screen 2 (right)
+let msPicking  = false;  // waiting for user to pick channel 2
+let msCh1      = null;   // channel playing in screen 1
+
+const msWrap  = document.getElementById("ms-wrap");
+const msHint  = document.getElementById("ms-hint");
+const vidMs1  = document.getElementById("vid-ms1");
+const vidMs2  = document.getElementById("vid-ms2");
+const mainVid = document.getElementById("vid");    // original player
+
+function toggleMultiScreen(){
+  if(msActive){
+    exitMultiScreen();
+  } else {
+    enterMultiScreen();
+  }
+}
+
+function enterMultiScreen(){
+  msActive  = true;
+  msPicking = true;
+
+  // Show multiscreen wrap, hide main video
+  msWrap.classList.add("active");
+  mainVid.style.display = "none";
+  msHint.classList.add("show");
+  document.getElementById("msbtn").textContent = "✕";
+
+  // Copy current stream to screen 1
+  const ch = ALL[CUR];
+  if(ch){
+    msCh1 = ch;
+    loadMsStream(ch.url, 1);
+    document.querySelector(".ms-label").textContent = "Screen 1 — " + ch.name.substring(0,12);
+  }
+
+  toast("Tap a channel below to play in Screen 2");
+  // rebuild channel list to show "add to screen 2" mode
+  buildList();
+}
+
+function exitMultiScreen(){
+  msActive  = false;
+  msPicking = false;
+
+  msWrap.classList.remove("active");
+  mainVid.style.display = "block";
+  msHint.classList.remove("show");
+  document.getElementById("msbtn").textContent = "⊞";
+
+  // Destroy multiscreen HLS instances
+  destroyMsHls(1);
+  destroyMsHls(2);
+
+  // Restore main player
+  if(ALL[CUR]) loadStream(ALL[CUR].url);
+  buildList();
+  toast("Multi-screen closed");
+}
+
+function closeScreen2(){
+  destroyMsHls(2);
+  vidMs2.src = "";
+  msPicking  = true;
+  msHint.classList.add("show");
+  toast("Tap a channel to play in Screen 2");
+}
+
+function loadMsStream(url, screen){
+  const targetVid = screen === 1 ? vidMs1 : vidMs2;
+
+  if(Hls.isSupported()){
+    const h = new Hls({
+      enableWorker: true, startLevel: -1,
+      abrEwmaDefaultEstimate: 500000,
+      maxBufferLength: 20, backBufferLength: 5,
+      manifestLoadingMaxRetry: 2,
+      xhrSetup: xhr=>{ xhr.withCredentials=false; }
+    });
+
+    // Handle http:// streams via proxy on PC
+    let streamUrl = url;
+    if(isMixedContent(url) && !isMobile()){
+      streamUrl = toProxyUrl(url);
+    }
+
+    h.loadSource(streamUrl);
+    h.attachMedia(targetVid);
+    h.on(Hls.Events.MANIFEST_PARSED, ()=>{
+      targetVid.play().catch(()=>{ targetVid.muted=true; targetVid.play().catch(()=>{}); });
+    });
+    h.on(Hls.Events.ERROR, (e,d)=>{
+      if(d.fatal && d.type === Hls.ErrorTypes.MEDIA_ERROR){ h.recoverMediaError(); }
+    });
+
+    if(screen === 1) msHls1 = h;
+    else             msHls2 = h;
+
+  } else if(targetVid.canPlayType("application/vnd.apple.mpegurl")){
+    targetVid.src = url;
+    targetVid.play().catch(()=>{ targetVid.muted=true; targetVid.play().catch(()=>{}); });
+  }
+}
+
+function destroyMsHls(screen){
+  if(screen === 1 && msHls1){ msHls1.destroy(); msHls1=null; }
+  if(screen === 2 && msHls2){ msHls2.destroy(); msHls2=null; }
+}
+
+// Called when user taps a channel while in multiscreen mode
+function playChannelInScreen2(ch){
+  msPicking = false;
+  msHint.classList.remove("show");
+
+  destroyMsHls(2);
+  vidMs2.src = "";
+
+  const label2 = document.querySelectorAll(".ms-label")[1];
+  if(label2) label2.textContent = "Screen 2 — " + ch.name.substring(0,12);
+
+  loadMsStream(ch.url, 2);
+  buildList(); // refresh list to remove ms-target highlight
+  toast("Playing " + ch.name + " in Screen 2");
+}
+
+
 async function boot(){
   let fetched = false;
   try{
@@ -527,31 +717,46 @@ function buildRecommended(){
   sec.classList.remove("empty");
   row.innerHTML = "";
 
+  // Show ALL recommended channels — no limit
   recs.forEach((ch, i)=>{
     const div = document.createElement("div");
     div.className = "rec-item";
     div.id = "rec-" + i;
+
+    // Make icon background match category color
+    const catColors = {
+      news:"#1a3a5c", sports:"#1a3a1a",
+      movies:"#3a1a1a", music:"#2a1a3a"
+    };
+    const bgColor = catColors[ch.cat] || "#1a1a28";
+
     div.innerHTML =
-      '<div class="rec-icon">' + cEmoji(ch.cat||"sports") + '</div>'+
+      '<div class="rec-icon" style="background:'+bgColor+'">' +
+        cEmoji(ch.cat||"sports") +
+      '</div>'+
       '<div class="rec-name">' + esc(ch.name) + '</div>';
+
     div.onclick = ()=>{
-      // Find in ALL channels and play
+      if(msActive && msPicking){
+        // Multiscreen mode: recommended goes to screen 2
+        playChannelInScreen2({name:ch.name, url:ch.url, cat:ch.cat||"sports"});
+        return;
+      }
+      // Normal mode: find and play
       const idx = ALL.findIndex(c => c.url === ch.url);
       if(idx >= 0){
-        // Switch category filter to show this channel's category
         activeCat = ch.cat || "all";
         buildCatBar();
         buildList();
         play(idx);
       } else {
-        // Add to ALL temporarily and play
         ALL.unshift({name:ch.name, url:ch.url, cat:ch.cat||"sports"});
         activeCat = ch.cat || "all";
         buildCatBar();
         buildList();
         play(0);
       }
-      // Mark active
+      // Mark active recommended
       document.querySelectorAll(".rec-item").forEach(el=>el.classList.remove("active"));
       div.classList.add("active");
     };
@@ -621,7 +826,14 @@ function buildList(){
         `<div class="chtit">${esc(ch.name)}</div>`+
         `<div class="chcat">${cEmoji(ch.cat)} ${esc(cap(ch.cat)||"Live TV")}</div>`+
       `</div>`+badge;
-    d.onclick = ()=>{ failed.delete(i); play(i); };
+    d.onclick = ()=>{
+      if(msActive && msPicking){
+        playChannelInScreen2(ALL[i]);
+      } else {
+        failed.delete(i);
+        play(i);
+      }
+    };
     list.appendChild(d);
   });
 }
