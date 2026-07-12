@@ -23,131 +23,197 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 #spbtn{font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(233,69,96,.15);
   border:1px solid rgba(233,69,96,.3);color:var(--r);text-decoration:none;flex-shrink:0;font-weight:600;}
 
-/* VIDEO */
-#vsec{flex-shrink:0;position:relative;background:#000;}
-#vid{width:100%;display:block;height:clamp(210px, 38vh, 520px);background:#000;object-fit:contain;}
+/* ── MULTI-SCREEN LAYOUT ────────────────────────────────────── */
+#players-wrap{
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  background:#000;
+  position:relative;
+}
 
-/* ── FULLSCREEN (CSS-based — works in ALL contexts) ── */
-/* Triggered by body.fsm class — always applied on ⛶ click */
-html.fsm, body.fsm{
-  overflow:hidden !important;
-  width:100vw !important;
-  height:100vh !important;
+/* Each player slot */
+.pslot{
+  position:relative;
+  background:#000;
+  flex:1;
+  min-height:0;
 }
-body.fsm #app{
-  display:flex !important;
-  position:fixed !important;
-  inset:0 !important;
-  z-index:99990 !important;
-  flex-direction:column !important;
-  background:#000 !important;
-}
-/* Hide everything except video section */
-body.fsm #hdr    { display:none !important; }
-body.fsm #catbar { display:none !important; }
-body.fsm #tabs   { display:none !important; }
-body.fsm #content{ display:none !important; }
-/* Video section fills ALL space */
-body.fsm #vsec{
-  flex:1 !important;
-  position:relative !important;
-  width:100vw !important;
-  height:100% !important;
-  min-height:0 !important;
-  background:#000 !important;
-}
-/* Video fills the section completely, centered */
-body.fsm #vid{
-  position:absolute !important;
-  top:0 !important; left:0 !important;
-  width:100% !important;
-  height:100% !important;
-  max-width:100vw !important;
-  max-height:100vh !important;
-  object-fit:contain !important;
-  background:#000 !important;
-}
-/* Controls pinned to bottom */
-body.fsm #cbar{
-  position:absolute !important;
-  bottom:0 !important; left:0 !important; right:0 !important;
-  z-index:100000 !important;
-  background:linear-gradient(transparent,rgba(0,0,0,.92)) !important;
-  padding:10px 16px !important;
-}
-body.fsm #vst   { z-index:100001 !important; }
-body.fsm #fovbar{ z-index:100001 !important; }
-body.fsm #iplay { z-index:100002 !important; }
-/* Hint badge */
-body.fsm #fs-hint{ display:flex !important; }
-#fs-hint{
+/* Single slot: hide slot2 */
+#players-wrap:not(.multi) .pslot:nth-child(2){
   display:none;
-  position:fixed;top:12px;right:14px;z-index:100003;
-  background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);
-  font-size:11px;padding:4px 10px;border-radius:20px;
-  pointer-events:none;align-items:center;gap:5px;
 }
 
-/* PORTRAIT */
-body.rot #vsec{position:fixed;top:0;left:0;z-index:99999;
-  width:100vh;height:100vw;
-  transform:rotate(90deg) translateX(0) translateY(-100%);
-  transform-origin:top left;background:#000;display:flex;flex-direction:column;}
-body.rot #vid{flex:1;width:100%;height:0!important;object-fit:contain;}
-body.rot #cbar{position:relative;flex-shrink:0;}
+/* MOBILE multi (< 600px): Screen1 top, Screen2 bottom */
+@media(max-width:599px){
+  #players-wrap.multi{ flex-direction:column; }
+  #players-wrap.multi .pslot{ flex:none; width:100%; }
+  #players-wrap.multi .slot-vid{ height:clamp(120px,26vh,280px) !important; }
+}
 
-/* CONTROLS */
-#cbar{position:absolute;bottom:0;left:0;right:0;padding:7px 10px;
-  background:linear-gradient(transparent,rgba(0,0,0,.92));display:flex;align-items:center;gap:7px;z-index:10;}
-.cb{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:34px;height:34px;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;
+/* DESKTOP multi (>= 600px): Screen1 left, Screen2 right */
+@media(min-width:600px){
+  #players-wrap.multi{ flex-direction:row; }
+  #players-wrap.multi .pslot{ flex:1; min-width:0; }
+  #players-wrap.multi .slot-vid{ height:clamp(200px,38vh,480px) !important; }
+}
+@media(min-width:900px){
+  #players-wrap.multi .slot-vid{ height:clamp(300px,44vh,560px)!important; }
+}
+@media(min-width:1200px){
+  #players-wrap.multi .slot-vid{ height:clamp(360px,46vh,620px)!important; }
+}
+/* Active slot indicator ring */
+.pslot.active-slot::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border:2px solid var(--r);
+  pointer-events:none;
+  z-index:30;
+}
+/* Slot label badge */
+.slot-label{
+  position:absolute;
+  top:6px;left:6px;
+  background:rgba(233,69,96,.85);
+  color:#fff;font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:10px;
+  z-index:25;pointer-events:none;
+  display:none;
+}
+#players-wrap.multi .slot-label{display:block;}
+
+/* VIDEO inside each slot — single screen heights */
+.slot-vid{
+  width:100%;display:block;
+  height:clamp(175px,34vh,500px);
+  background:#000;object-fit:contain;
+}
+@media(min-width:600px){
+  .slot-vid{height:clamp(260px,42vh,560px)!important;}
+}
+@media(min-width:900px){
+  .slot-vid{height:clamp(380px,48vh,660px)!important;}
+}
+@media(min-width:1200px){
+  .slot-vid{height:clamp(460px,52vh,740px)!important;}
+}
+/* Multi screen heights are handled per breakpoint below in the MULTI-SCREEN section */
+
+/* CONTROLS per slot */
+.cbar{
+  position:absolute;bottom:0;left:0;right:0;padding:6px 8px;
+  background:linear-gradient(transparent,rgba(0,0,0,.92));
+  display:flex;align-items:center;gap:6px;z-index:10;
+}
+.cb{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:13px;
   flex-shrink:0;user-select:none;}
 .cb:active{transform:scale(.87);background:rgba(233,69,96,.5);}
-#qw{position:relative;}
-#qbtn{border-radius:7px!important;width:auto!important;padding:0 9px;font-size:11px;font-weight:700;}
-#qmenu{display:none;position:absolute;bottom:42px;left:0;background:#1a1a28;
-  border:1px solid var(--br);border-radius:8px;overflow:hidden;min-width:90px;z-index:300;}
-#qmenu.open{display:block;}
-.qo{padding:8px 13px;font-size:12px;cursor:pointer;white-space:nowrap;}
+#qw,#qw2{position:relative;}
+.qbtn{border-radius:7px!important;width:auto!important;padding:0 8px;font-size:10px;font-weight:700;}
+.qmenu{display:none;position:absolute;bottom:40px;left:0;background:#1a1a28;
+  border:1px solid var(--br);border-radius:8px;overflow:hidden;min-width:85px;z-index:300;}
+.qmenu.open{display:block;}
+.qo{padding:7px 12px;font-size:11px;cursor:pointer;white-space:nowrap;}
 .qo:hover,.qo:active{background:rgba(233,69,96,.18);}
 .qo.active{color:var(--r);font-weight:700;}
-#netlbl{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--mt);flex-shrink:0;}
-#livlbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--r);}
+.netlbl{font-size:10px;padding:2px 5px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--mt);flex-shrink:0;}
+.livlbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--r);}
 
-/* STATE */
-#vst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+/* MULTI-SCREEN toggle button — special style */
+#msbtn{
+  border-radius:7px!important;width:auto!important;padding:0 9px;
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+  background:rgba(255,255,255,.12);border:none;
+  color:#fff;cursor:pointer;height:32px;flex-shrink:0;
+}
+#msbtn.ms-on{
+  background:rgba(233,69,96,.3)!important;
+  border:1px solid rgba(233,69,96,.6)!important;
+  color:var(--r)!important;
+}
+#msbtn:active{transform:scale(.9);}
+
+/* Select-screen highlight when clicking in multi mode */
+.pslot.pick-me{ cursor:pointer; }
+
+/* STATE per slot */
+.vst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   text-align:center;pointer-events:none;z-index:15;width:85%;}
-#spin{width:32px;height:32px;border:3px solid rgba(233,69,96,.18);border-top-color:var(--r);
-  border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 7px;}
+.spin{width:28px;height:28px;border:3px solid rgba(233,69,96,.18);border-top-color:var(--r);
+  border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 6px;}
 @keyframes sp{to{transform:rotate(360deg)}}
-#stxt{font-size:12px;color:var(--mt);}
-#ssub{font-size:10px;color:#444;margin-top:3px;}
-#vst.h{display:none;}
-#fovbar{display:none;position:absolute;top:0;left:0;right:0;z-index:16;
+.stxt{font-size:11px;color:var(--mt);}
+.ssub{font-size:10px;color:#444;margin-top:3px;}
+.vst.h{display:none;}
+.fovbar{display:none;position:absolute;top:0;left:0;right:0;z-index:16;
   background:rgba(233,69,96,.14);border-bottom:1px solid rgba(233,69,96,.25);
-  padding:5px 12px;font-size:11px;color:var(--r);text-align:center;}
+  padding:4px 10px;font-size:11px;color:var(--r);text-align:center;}
 
 /* iPhone play overlay */
-#iplay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
+.iplay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
   background:rgba(0,0,0,.55);z-index:20;flex-direction:column;gap:10px;cursor:pointer;}
-#iplay.show{display:flex;}
-#iplay-ic{width:56px;height:56px;background:rgba(233,69,96,.9);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:24px;}
-#iplay-tx{color:#ccc;font-size:12px;}
+.iplay.show{display:flex;}
+.iplay-ic{width:50px;height:50px;background:rgba(233,69,96,.9);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:22px;}
+.iplay-tx{color:#ccc;font-size:11px;}
+
+/* FULLSCREEN (CSS-based) */
+html.fsm,body.fsm{overflow:hidden!important;width:100vw!important;height:100vh!important;}
+body.fsm #app{display:flex!important;position:fixed!important;inset:0!important;z-index:99990!important;flex-direction:column!important;background:#000!important;}
+body.fsm #hdr    {display:none!important;}
+body.fsm #catbar {display:none!important;}
+body.fsm #tabs   {display:none!important;}
+body.fsm #content{display:none!important;}
+/* fullscreen single: fill entire space */
+body.fsm #players-wrap{flex:1!important;position:relative!important;width:100vw!important;height:100%!important;min-height:0!important;}
+body.fsm #players-wrap:not(.multi) .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+/* fullscreen multi: side by side, each fills full height */
+body.fsm #players-wrap.multi{flex-direction:row!important;}
+body.fsm #players-wrap.multi .pslot{flex:1!important;min-width:0!important;height:100%!important;position:relative!important;}
+body.fsm #players-wrap.multi .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+body.fsm .cbar{position:absolute!important;bottom:0!important;left:0!important;right:0!important;z-index:100000!important;background:linear-gradient(transparent,rgba(0,0,0,.92))!important;padding:8px 14px!important;}
+
+#fs-hint{display:none;position:fixed;top:12px;right:14px;z-index:100003;background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);font-size:11px;padding:4px 10px;border-radius:20px;pointer-events:none;align-items:center;gap:5px;}
+body.fsm #fs-hint{display:flex!important;}
+
+/* PORTRAIT LANDSCAPE LOCK */
+/* Single screen portrait: fills available height nicely */
+body.rot #players-wrap{ background:#000; }
+
+/* Multi screen in landscape-locked portrait: left/right side by side */
+body.rot #players-wrap.multi{
+  flex-direction:row !important;
+}
+body.rot #players-wrap.multi .pslot{
+  flex:1 !important;
+  min-width:0 !important;
+}
+/* In landscape orientation (portrait-lock), height is the shorter dimension */
+body.rot #players-wrap.multi .slot-vid{
+  height:clamp(140px,45vw,380px) !important;
+}
+
+/* PiP overlay */
+#pip-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:50;cursor:pointer;}
+#pip-overlay.show{display:flex;}
+#pip-overlay-icon{font-size:36px;}
+#pip-overlay-txt{font-size:12px;color:var(--mt);text-align:center;padding:0 20px;}
+#pip-overlay-btn{padding:8px 20px;background:var(--r);color:#fff;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;}
+#pipbtn.hidden{display:none;}
 
 /* CAT FILTER */
-#catbar{flex-shrink:0;display:flex;gap:6px;padding:7px 10px;
-  overflow-x:auto;background:var(--c1);border-bottom:1px solid var(--br);}
+#catbar{flex-shrink:0;display:flex;gap:6px;padding:7px 10px;overflow-x:auto;background:var(--c1);border-bottom:1px solid var(--br);}
 #catbar::-webkit-scrollbar{display:none;}
-.cfbtn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--br);
-  background:transparent;color:var(--mt);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.cfbtn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--br);background:transparent;color:var(--mt);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .cfbtn.on{background:rgba(233,69,96,.15);border-color:rgba(233,69,96,.4);color:var(--r);}
 .cfbtn:active{transform:scale(.95);}
 
 /* TABS */
 #tabs{flex-shrink:0;display:flex;border-bottom:1px solid var(--br);background:var(--c1);}
-.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;
-  color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
 .tab.on{color:var(--r);border-bottom-color:var(--r);}
 
 /* CONTENT */
@@ -155,21 +221,24 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 #content::-webkit-scrollbar{width:3px;}
 #content::-webkit-scrollbar-thumb{background:var(--br);border-radius:3px;}
 #chlist{padding:7px;}
-.chi{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;
-  cursor:pointer;border:1px solid transparent;margin-bottom:5px;}
+.chi{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;cursor:pointer;border:1px solid transparent;margin-bottom:5px;}
 .chi:active{background:var(--c2);}
 .chi.pl{background:rgba(233,69,96,.09);border-color:rgba(233,69,96,.28);}
-.chiico{width:36px;height:36px;border-radius:7px;background:var(--c2);
-  display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.chi.pl2{background:rgba(100,140,255,.09);border-color:rgba(100,140,255,.28);}
+.chiico{width:36px;height:36px;border-radius:7px;background:var(--c2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 .chi.pl .chiico{background:rgba(233,69,96,.18);}
+.chi.pl2 .chiico{background:rgba(100,140,255,.18);}
 .chinf{flex:1;min-width:0;}
 .chtit{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chi.pl .chtit{color:var(--r);}
+.chi.pl2 .chtit{color:#6496ff;}
 .chcat{font-size:10px;color:var(--mt);margin-top:1px;}
-.livbg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;
-  background:rgba(233,69,96,.13);color:var(--r);border:1px solid rgba(233,69,96,.28);flex-shrink:0;}
-.errbg{font-size:9px;padding:2px 6px;border-radius:4px;
-  background:rgba(80,80,80,.2);color:#555;border:1px solid #2a2a2a;flex-shrink:0;}
+.livbg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(233,69,96,.13);color:var(--r);border:1px solid rgba(233,69,96,.28);flex-shrink:0;}
+.errbg{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(80,80,80,.2);color:#555;border:1px solid #2a2a2a;flex-shrink:0;}
+
+/* multi indicator in channel list */
+.slot1-badge{font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(233,69,96,.2);color:var(--r);border:1px solid rgba(233,69,96,.3);flex-shrink:0;}
+.slot2-badge{font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(100,140,255,.2);color:#6496ff;border:1px solid rgba(100,140,255,.3);flex-shrink:0;}
 
 /* INFO */
 #infopan{padding:13px;}
@@ -181,26 +250,19 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 .sd{width:6px;height:6px;border-radius:50%;background:var(--r);animation:bl 1.4s infinite;}
 
 /* LOADING SCREEN */
-#ldscr{position:fixed;inset:0;background:var(--dk);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;z-index:999999;gap:14px;}
+#ldscr{position:fixed;inset:0;background:var(--dk);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;gap:14px;}
 .lsi{font-size:48px;}
-.lss{width:28px;height:28px;border:3px solid rgba(233,69,96,.2);border-top-color:var(--r);
-  border-radius:50%;animation:sp .75s linear infinite;}
+.lss{width:28px;height:28px;border:3px solid rgba(233,69,96,.2);border-top-color:var(--r);border-radius:50%;animation:sp .75s linear infinite;}
 .lst{font-size:13px;color:var(--mt);}
 
 /* TOAST */
-#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
-  background:rgba(15,15,25,.96);border:1px solid rgba(233,69,96,.4);color:#fff;
-  padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;pointer-events:none;
-  transition:opacity .28s;z-index:999999;white-space:nowrap;max-width:88vw;text-align:center;}
+#toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(15,15,25,.96);border:1px solid rgba(233,69,96,.4);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .28s;z-index:999999;white-space:nowrap;max-width:88vw;text-align:center;}
 #toast.show{opacity:1;}
 
-/* ── DESKTOP responsive layout ─────────────────────────────── */
-@media (min-width: 600px){
-  #vid{height:clamp(300px, 45vh, 600px) !important;}
+/* Desktop responsive */
+@media(min-width:600px){
   #hdr{padding:10px 18px;}
   #chnm{font-size:16px;}
-  #spbtn{font-size:12px;padding:4px 12px;}
   #catbar{padding:8px 14px;gap:8px;}
   .cfbtn{padding:6px 16px;font-size:12px;}
   .tab{padding:10px 6px;font-size:13px;}
@@ -209,10 +271,9 @@ body.rot #cbar{position:relative;flex-shrink:0;}
   .chiico{width:42px;height:42px;font-size:20px;}
   .chtit{font-size:14px;}
   .chcat{font-size:11px;}
-  .cb{width:38px;height:38px;font-size:16px;}
+  .cb{width:36px;height:36px;font-size:15px;}
 }
-@media (min-width: 900px){
-  #vid{height:clamp(420px, 50vh, 680px) !important;}
+@media(min-width:900px){
   #hdr{padding:11px 22px;}
   #chnm{font-size:17px;}
   .cfbtn{padding:7px 18px;font-size:13px;}
@@ -220,164 +281,10 @@ body.rot #cbar{position:relative;flex-shrink:0;}
   .chi{padding:12px 16px;}
   .chiico{width:46px;height:46px;font-size:22px;}
 }
-@media (min-width:1200px){
-  #vid{height:clamp(500px, 55vh, 780px) !important;}
-}
 
 /* Native fullscreen on video element itself */
-#vid:-webkit-full-screen { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
-#vid:-moz-full-screen    { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
-#vid:-ms-fullscreen      { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
-#vid:fullscreen          { width:100vw !important; height:100vh !important; object-fit:contain; background:#000; }
-
-/* Native fullscreen on vsec container */
-#vsec:-webkit-full-screen { width:100vw !important; height:100vh !important; background:#000; display:flex; align-items:center; justify-content:center; }
-#vsec:fullscreen          { width:100vw !important; height:100vh !important; background:#000; display:flex; align-items:center; justify-content:center; }
-#vsec:-webkit-full-screen #vid { width:100vw !important; height:100vh !important; object-fit:contain; }
-#vsec:fullscreen #vid          { width:100vw !important; height:100vh !important; object-fit:contain; }
-#vsec:-webkit-full-screen #cbar { position:fixed; bottom:0; left:0; right:0; }
-#vsec:fullscreen #cbar           { position:fixed; bottom:0; left:0; right:0; }
-
-/* ── PICTURE-IN-PICTURE ─────────────────────────────────────── */
-/* When video is in PiP mode, show a placeholder */
-#pip-overlay{
-  display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);
-  align-items:center;justify-content:center;flex-direction:column;gap:10px;
-  z-index:50;cursor:pointer;
-}
-#pip-overlay.show{display:flex;}
-#pip-overlay-icon{font-size:36px;}
-#pip-overlay-txt{font-size:12px;color:var(--mt);text-align:center;padding:0 20px;}
-#pip-overlay-btn{
-  padding:8px 20px;background:var(--r);color:#fff;border:none;
-  border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;
-}
-/* Hide PiP button if API not supported */
-#pipbtn.hidden{display:none;}
-
-/* ── BROWSER MODE BAR ───────────────────────────── */
-#browser-bar{
-  display:none;
-  align-items:center;justify-content:space-between;
-  padding:8px 14px;
-  background:linear-gradient(135deg,#1a1a2e,#16213e);
-  border-bottom:2px solid var(--r);
-  font-size:12px;color:var(--tx);flex-shrink:0;
-  position:relative;z-index:30;
-}
-#browser-bar .bb-logo{font-size:16px;font-weight:700;color:var(--r);}
-#browser-bar .bb-link{
-  font-size:11px;padding:4px 12px;border-radius:20px;
-  background:rgba(233,69,96,.15);border:1px solid rgba(233,69,96,.3);
-  color:var(--r);text-decoration:none;font-weight:600;
-}
-#browser-bar .bb-tag{font-size:10px;color:var(--mt);}
-
-/* ── RECOMMENDED CHANNELS ───────────────────────── */
-#rec-section{
-  flex-shrink:0;
-  background:var(--c1);
-  border-bottom:1px solid var(--br);
-  padding:8px 10px;
-}
-#rec-title{
-  font-size:10px;font-weight:700;letter-spacing:.8px;
-  color:var(--r);margin-bottom:7px;text-transform:uppercase;
-}
-#rec-row{
-  display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;
-}
-#rec-row::-webkit-scrollbar{display:none;}
-.rec-item{
-  flex-shrink:0;display:flex;flex-direction:column;
-  align-items:center;gap:4px;cursor:pointer;
-  width:58px;
-}
-.rec-icon{
-  width:46px;height:46px;border-radius:10px;
-  background:var(--c2);
-  display:flex;align-items:center;justify-content:center;
-  font-size:20px;border:2px solid transparent;
-  transition:border-color .2s;
-}
-.rec-item.active .rec-icon{border-color:var(--r);}
-.rec-item:active .rec-icon{border-color:var(--r);}
-.rec-name{
-  font-size:9px;color:var(--mt);text-align:center;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  width:56px;
-}
-.rec-item.active .rec-name{color:var(--r);}
-#rec-section.empty{display:none;}
-
-/* ── MULTI SCREEN ────────────────────────────────────────────── */
-/* single-view wraps the main video — fills vsec normally */
-#single-view{
-  width:100%; height:100%;
-  position:absolute; top:0; left:0;
-}
-#single-view video{
-  width:100%; height:100%;
-  object-fit:contain; display:block; background:#000;
-}
-
-/* ms-wrap: hidden by default, fills same vsec space as single-view */
-#ms-wrap{
-  display:none;
-  position:absolute; top:0; left:0;
-  width:100%; height:100%;
-  flex-direction:row;
-  background:#000;
-  z-index:5;
-}
-#ms-wrap.active{ display:flex; }
-
-/* Each screen takes exactly half the space */
-#ms-left, #ms-right{
-  flex:1; position:relative; background:#000;
-  border:1px solid rgba(233,69,96,.2);
-  overflow:hidden;
-}
-#ms-left video, #ms-right video{
-  width:100%; height:100%;
-  object-fit:contain; display:block;
-}
-
-/* Screen label badge */
-.ms-label{
-  position:absolute; top:5px; left:6px; z-index:10;
-  font-size:9px; font-weight:700; letter-spacing:.3px;
-  background:rgba(233,69,96,.85); color:#fff;
-  padding:2px 8px; border-radius:10px;
-  white-space:nowrap; max-width:120px;
-  overflow:hidden; text-overflow:ellipsis;
-}
-
-/* Close screen 2 button */
-.ms-close{
-  position:absolute; top:4px; right:6px; z-index:10;
-  background:rgba(0,0,0,.75); color:#fff; border:none;
-  border-radius:50%; width:22px; height:22px;
-  font-size:12px; cursor:pointer; line-height:1;
-  display:flex; align-items:center; justify-content:center;
-}
-.ms-close:active{ background:rgba(233,69,96,.7); }
-
-/* Mobile: stack vertically */
-@media(max-width:500px){
-  #ms-wrap{ flex-direction:column; }
-  #ms-left, #ms-right{ flex:1; }
-}
-
-/* Hint bar */
-#ms-hint{
-  display:none; flex-shrink:0;
-  background:rgba(233,69,96,.12);
-  border-bottom:1px solid rgba(233,69,96,.25);
-  padding:6px 12px; font-size:11px; color:var(--r);
-  text-align:center;
-}
-#ms-hint.show{ display:block; }
+.slot-vid:-webkit-full-screen{width:100vw!important;height:100vh!important;object-fit:contain;background:#000;}
+.slot-vid:fullscreen{width:100vw!important;height:100vh!important;object-fit:contain;background:#000;}
 </style>
 </head>
 <body>
@@ -389,12 +296,6 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 </div>
 
 <div id="app" style="display:none">
-  <!-- Shown only in browser, hidden in Telegram Mini App -->
-  <div id="browser-bar">
-    <div class="bb-logo">FIFA Live TV</div>
-    <div class="bb-tag">Live Streaming</div>
-    <a class="bb-link" href="https://t.me/LiveTv_V1Bot" target="_blank">Open in Telegram</a>
-  </div>
   <div id="hdr">
     <div id="ldot"></div>
     <div id="chnm">Loading...</div>
@@ -402,66 +303,74 @@ body.rot #cbar{position:relative;flex-shrink:0;}
     <a id="spbtn" href="https://t.me/FifaLiveTvChat" target="_blank">💬 Support</a>
   </div>
 
-  <!-- Multi Screen hint bar -->
-  <div id="ms-hint">Tap any channel below to play in Screen 2</div>
+  <!-- ── PLAYERS WRAPPER ──────────────────────────────────── -->
+  <div id="players-wrap">
 
-  <!-- Recommended channels horizontal strip -->
-  <div id="rec-section" class="empty">
-    <div id="rec-title">Recommended</div>
-    <div id="rec-row"></div>
-  </div>
-
-  <div id="vsec">
-    <div id="fovbar"></div>
-
-    <!-- Single player view -->
-    <div id="single-view">
-      <video id="vid" playsinline webkit-playsinline preload="auto"></video>
-    </div>
-
-    <!-- Multi screen view (hidden by default, shown on ⊞ click) -->
-    <div id="ms-wrap">
-      <div id="ms-left">
-        <div class="ms-label" id="ms-lbl1">Screen 1</div>
-        <video id="vid-ms1" playsinline webkit-playsinline preload="auto" muted></video>
+    <!-- SLOT 1 (primary, always visible) -->
+    <div class="pslot active-slot" id="slot1">
+      <div class="slot-label">📺 Screen 1</div>
+      <div class="fovbar" id="fovbar1"></div>
+      <video class="slot-vid" id="vid1" playsinline webkit-playsinline preload="auto"></video>
+      <div class="vst" id="vst1">
+        <div class="spin"></div>
+        <div class="stxt">Connecting...</div>
+        <div class="ssub"></div>
       </div>
-      <div id="ms-right">
-        <div class="ms-label" id="ms-lbl2">Screen 2</div>
-        <video id="vid-ms2" playsinline webkit-playsinline preload="auto" muted></video>
-        <button class="ms-close" onclick="closeScreen2()">✕</button>
+      <div class="iplay" id="iplay1" onclick="iphonePlay(0)">
+        <div class="iplay-ic">▶</div>
+        <div class="iplay-tx">Tap to play</div>
+      </div>
+      <!-- PiP overlay slot1 -->
+      <div id="pip-overlay" onclick="returnFromPiP()">
+        <div id="pip-overlay-icon">📺</div>
+        <div id="pip-overlay-txt">Playing in Mini Player<br>Tap to return</div>
+        <button id="pip-overlay-btn" onclick="returnFromPiP()">↩ Return to Player</button>
+      </div>
+      <div class="cbar" id="cbar1">
+        <button class="cb" id="mbtn1" onclick="toggleMute(0)">🔊</button>
+        <div id="qw1" style="position:relative;">
+          <button class="cb qbtn" id="qbtn1" onclick="toggleQ(0)">AUTO</button>
+          <div class="qmenu" id="qmenu1"></div>
+        </div>
+        <span class="netlbl" id="netlbl1"></span>
+        <button class="cb" id="pbtn" onclick="togglePortrait()">⟳</button>
+        <button class="cb" id="pipbtn" onclick="togglePiP()" title="Mini Player">⊡</button>
+        <!-- MULTI-SCREEN button -->
+        <button class="cb" id="msbtn" onclick="toggleMultiScreen()" title="Multi Screen">⊞</button>
+        <button class="cb" id="fbtn" onclick="toggleFS()">⛶</button>
+        <span class="livlbl">● LIVE</span>
       </div>
     </div>
-    <div id="vst">
-      <div id="spin"></div>
-      <div id="stxt">Connecting...</div>
-      <div id="ssub"></div>
-    </div>
-    <!-- iPhone tap-to-play overlay -->
-    <div id="iplay" onclick="iphonePlay()">
-      <div id="iplay-ic">▶</div>
-      <div id="iplay-tx">Tap to play</div>
-    </div>
-    <div id="fs-hint">Press Esc to exit fullscreen</div>
-    <!-- PiP overlay shown while video is in mini player -->
-    <div id="pip-overlay" onclick="returnFromPiP()">
-      <div id="pip-overlay-icon">📺</div>
-      <div id="pip-overlay-txt">Playing in Mini Player<br>Tap to return</div>
-      <button id="pip-overlay-btn" onclick="returnFromPiP()">↩ Return to Player</button>
-    </div>
-    <div id="cbar">
-      <button class="cb" id="mbtn" onclick="toggleMute()">🔊</button>
-      <div id="qw">
-        <button class="cb" id="qbtn" onclick="toggleQ()">AUTO</button>
-        <div id="qmenu"></div>
+
+    <!-- SLOT 2 (secondary, shown only in multi mode) -->
+    <div class="pslot" id="slot2">
+      <div class="slot-label">📺 Screen 2</div>
+      <div class="fovbar" id="fovbar2"></div>
+      <video class="slot-vid" id="vid2" playsinline webkit-playsinline preload="auto"></video>
+      <div class="vst" id="vst2">
+        <div class="spin"></div>
+        <div class="stxt">Select a channel</div>
+        <div class="ssub">Tap a channel to play here</div>
       </div>
-      <span id="netlbl"></span>
-      <button class="cb" id="pbtn" onclick="togglePortrait()">⟳</button>
-      <button class="cb" id="pipbtn" onclick="togglePiP()" title="Mini Player">⊡</button>
-      <button class="cb" id="msbtn" onclick="toggleMultiScreen()" title="Multi Screen">⊞</button>
-      <button class="cb" id="fbtn" onclick="toggleFS()">⛶</button>
-      <span id="livlbl">● LIVE</span>
+      <div class="iplay" id="iplay2" onclick="iphonePlay(1)">
+        <div class="iplay-ic">▶</div>
+        <div class="iplay-tx">Tap to play</div>
+      </div>
+      <div class="cbar" id="cbar2">
+        <button class="cb" id="mbtn2" onclick="toggleMute(1)">🔊</button>
+        <div id="qw2" style="position:relative;">
+          <button class="cb qbtn" id="qbtn2" onclick="toggleQ(1)">AUTO</button>
+          <div class="qmenu" id="qmenu2"></div>
+        </div>
+        <span class="netlbl" id="netlbl2"></span>
+        <button class="cb" onclick="closeSlot2()" title="Close Screen 2" style="font-size:12px;">✕</button>
+        <span class="livlbl" id="livlbl2" style="display:none;">● LIVE</span>
+      </div>
     </div>
-  </div>
+
+  </div><!-- /players-wrap -->
+
+  <div id="fs-hint">Press Esc to exit fullscreen</div>
 
   <div id="catbar"></div>
 
@@ -478,323 +387,72 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 
 <script>
 // ── Telegram ──────────────────────────────────────────────────
-// Works in BOTH Telegram Mini App AND normal browser
 const TG = window.Telegram && window.Telegram.WebApp;
-const isTelegram = !!(TG && TG.initData);
-const isBrowser  = !isTelegram;
-
-if(isTelegram){
-  TG.ready();
-  TG.expand();
-  if(TG.requestFullscreen)  TG.requestFullscreen();
-  if(TG.setHeaderColor)     TG.setHeaderColor("#0a0a0f");
+if(TG){
+  TG.ready(); TG.expand();
+  if(TG.requestFullscreen) TG.requestFullscreen();
+  if(TG.setHeaderColor) TG.setHeaderColor("#0a0a0f");
   if(TG.setBackgroundColor) TG.setBackgroundColor("#0a0a0f");
   if(TG.BackButton && TG.BackButton.isVisible) TG.BackButton.hide();
 }
 
-// Browser mode: show a header bar with bot link
-if(isBrowser){
-  document.addEventListener("DOMContentLoaded", function(){
-    const bar = document.getElementById("browser-bar");
-    if(bar) bar.style.display = "flex";
-  });
-}
-
-// ── Detect iPhone/iOS ─────────────────────────────────────────
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-// ── URL Params ────────────────────────────────────────────────
 const P       = new URLSearchParams(location.search);
 const initUrl = decodeURIComponent(P.get("url")  || "");
 const initNm  = decodeURIComponent(P.get("name") || "Live TV");
 const initCat = decodeURIComponent(P.get("cat")  || "");
 
-// ── CHANNELS JSON URL ─────────────────────────────────────────
-// This file lives on your GitHub Pages repo
 const JSON_URL = "https://nasirkjkhan.github.io/player.html/channels.json";
 
 // ── State ─────────────────────────────────────────────────────
-let ALL      = []; // flat [{name,url,cat}]
-let CUR      = 0;
-let currentOrigUrl = ""; // track original URL for proxy retry
-let hls      = null;
-let muted    = false;
-let fsOn     = false;
-let natFS    = false;
-let rotOn    = false;
-let levels   = [];
-let failed   = new Set();
-let errCnt   = 0;
-let foTimer  = null;
-let strats   = [];
-let stIdx    = 0;
-let stlTimer = null;
-let lastT    = -1;
-let stlCnt   = 0;
+let ALL      = [];
+let CUR      = [0, -1];    // current channel index per slot; -1 = empty
+let hlsObj   = [null, null];
+let mutedS   = [false, false];
+let levelsS  = [[], []];
+let failedS  = [new Set(), new Set()];
+let errCntS  = [0, 0];
+let foTimerS = [null, null];
+let stratsS  = [[], []];
+let stIdxS   = [0, 0];
+let stlTimerS= [null, null];
+let lastTS   = [-1, -1];
+let stlCntS  = [0, 0];
 let activeCat= "all";
+let multiOn  = false;    // multi-screen ON/OFF
+let activeSlot = 0;     // which slot is currently "selected" for channel assignment
 
-// ── Elements ──────────────────────────────────────────────────
-const vid   = document.getElementById("vid");
-const vstEl = document.getElementById("vst");
-const stxtEl= document.getElementById("stxt");
-const ssubEl= document.getElementById("ssub");
-const spnEl = document.getElementById("spin");
-const mbtn  = document.getElementById("mbtn");
-const qmenu = document.getElementById("qmenu");
-const qbtn  = document.getElementById("qbtn");
-const chnmEl= document.getElementById("chnm");
-const ctbgEl= document.getElementById("ctbg");
-const netlbl= document.getElementById("netlbl");
-const fbtn  = document.getElementById("fbtn");
-const pbtn  = document.getElementById("pbtn");
-const fbar  = document.getElementById("fovbar");
-const iplay = document.getElementById("iplay");
+// when user clicks a channel in multi mode: which slot to load into
+// 0 = always slot1, but user can pick slot by clicking on the slot first
+let pickingSlot = 0;
 
-// ── FETCH channels.json ───────────────────────────────────────
-// ── Multi Screen ─────────────────────────────────────────────
-let msActive   = false;  // is multi-screen mode on?
-let msHls1     = null;   // HLS instance for screen 1 (left)
-let msHls2     = null;   // HLS instance for screen 2 (right)
-let msPicking  = false;  // waiting for user to pick channel 2
-let msCh1      = null;   // channel playing in screen 1
+// Elements per slot
+const vids    = [document.getElementById("vid1"),    document.getElementById("vid2")];
+const vstEls  = [document.getElementById("vst1"),    document.getElementById("vst2")];
+const iplayes = [document.getElementById("iplay1"),  document.getElementById("iplay2")];
+const mbtnEls = [document.getElementById("mbtn1"),   document.getElementById("mbtn2")];
+const qbtnEls = [document.getElementById("qbtn1"),   document.getElementById("qbtn2")];
+const qmenEls = [document.getElementById("qmenu1"),  document.getElementById("qmenu2")];
+const netlbls = [document.getElementById("netlbl1"), document.getElementById("netlbl2")];
+const fobarEls= [document.getElementById("fovbar1"), document.getElementById("fovbar2")];
+const slots   = [document.getElementById("slot1"),   document.getElementById("slot2")];
+const livlbl2 = document.getElementById("livlbl2");
 
-const msWrap  = document.getElementById("ms-wrap");
-const msHint  = document.getElementById("ms-hint");
-const vidMs1  = document.getElementById("vid-ms1");
-const vidMs2  = document.getElementById("vid-ms2");
-// mainVid is #vid inside #single-view — not needed directly, controlled via single-view
+const chnmEl  = document.getElementById("chnm");
+const ctbgEl  = document.getElementById("ctbg");
+const fbtn    = document.getElementById("fbtn");
+const pbtn    = document.getElementById("pbtn");
+const msbtn   = document.getElementById("msbtn");
 
-function toggleMultiScreen(){
-  if(msActive){
-    exitMultiScreen();
-  } else {
-    enterMultiScreen();
-  }
-}
-
-function enterMultiScreen(){
-  msActive  = true;
-  msPicking = true;
-
-  // Hide single view, show ms-wrap — both inside vsec so size unchanged
-  document.getElementById("single-view").style.display = "none";
-  msWrap.classList.add("active");
-  msHint.classList.add("show");
-  document.getElementById("msbtn").textContent = "✕";
-
-  // Copy current stream to screen 1
-  const ch = ALL[CUR];
-  if(ch){
-    msCh1 = ch;
-    loadMsStream(ch.url, 1);
-    document.getElementById("ms-lbl1").textContent = "1 — " + ch.name.substring(0,14);
-  }
-
-  toast("Tap a channel below to play in Screen 2");
-  buildList();
-}
-
-function exitMultiScreen(){
-  msActive  = false;
-  msPicking = false;
-
-  // Restore single view
-  document.getElementById("single-view").style.display = "";
-  msWrap.classList.remove("active");
-  msHint.classList.remove("show");
-  document.getElementById("msbtn").textContent = "⊞";
-
-  // Destroy multiscreen HLS instances
-  destroyMsHls(1);
-  destroyMsHls(2);
-  vidMs1.src = ""; vidMs2.src = "";
-
-  // Restore main player
-  if(ALL[CUR]) loadStream(ALL[CUR].url);
-  buildList();
-  toast("Multi-screen closed");
-}
-
-function closeScreen2(){
-  destroyMsHls(2);
-  vidMs2.src = "";
-  msPicking  = true;
-  msHint.classList.add("show");
-  toast("Tap a channel to play in Screen 2");
-}
-
-function loadMsStream(url, screen){
-  const targetVid = screen === 1 ? vidMs1 : vidMs2;
-
-  if(Hls.isSupported()){
-    const h = new Hls({
-      enableWorker: true, startLevel: -1,
-      abrEwmaDefaultEstimate: 500000,
-      maxBufferLength: 20, backBufferLength: 5,
-      manifestLoadingMaxRetry: 2,
-      xhrSetup: xhr=>{ xhr.withCredentials=false; }
-    });
-
-    // Handle http:// streams via proxy on PC
-    let streamUrl = url;
-    if(isMixedContent(url) && !isMobile()){
-      streamUrl = toProxyUrl(url);
-    }
-
-    h.loadSource(streamUrl);
-    h.attachMedia(targetVid);
-    h.on(Hls.Events.MANIFEST_PARSED, ()=>{
-      targetVid.play().catch(()=>{ targetVid.muted=true; targetVid.play().catch(()=>{}); });
-    });
-    h.on(Hls.Events.ERROR, (e,d)=>{
-      if(d.fatal && d.type === Hls.ErrorTypes.MEDIA_ERROR){ h.recoverMediaError(); }
-    });
-
-    if(screen === 1) msHls1 = h;
-    else             msHls2 = h;
-
-  } else if(targetVid.canPlayType("application/vnd.apple.mpegurl")){
-    targetVid.src = url;
-    targetVid.play().catch(()=>{ targetVid.muted=true; targetVid.play().catch(()=>{}); });
-  }
-}
-
-function destroyMsHls(screen){
-  if(screen === 1 && msHls1){ msHls1.destroy(); msHls1=null; }
-  if(screen === 2 && msHls2){ msHls2.destroy(); msHls2=null; }
-}
-
-// Called when user taps a channel while in multiscreen mode
-function playChannelInScreen2(ch){
-  msPicking = false;
-  msHint.classList.remove("show");
-
-  destroyMsHls(2);
-  vidMs2.src = "";
-
-  const lbl2 = document.getElementById("ms-lbl2");
-  if(lbl2) lbl2.textContent = "2 — " + ch.name.substring(0,14);
-
-  loadMsStream(ch.url, 2);
-  buildList();
-  toast("Playing " + ch.name + " in Screen 2");
-}
-
-
-async function boot(){
-  let fetched = false;
-  try{
-    const r = await fetch(JSON_URL + "?_=" + Date.now());
-    if(r.ok){
-      const j = await r.json();
-      ["news","sports","movies","music"].forEach(cat=>{
-        const arr = j[cat] || [];
-        arr.forEach(ch=>{
-          if(!ch.hidden) ALL.push({name:ch.name||"", url:ch.url||"", cat:cat});
-        });
-      });
-      if(ALL.length) fetched = true;
-    }
-  }catch(e){}
-
-  // Fallback: use URL param channel if JSON empty or failed
-  if(!ALL.length && initUrl){
-    ALL = [{name:initNm, url:initUrl, cat:initCat}];
-  }
-
-  // Load recommended channels from same JSON
-  try{
-    const rj = await fetch(JSON_URL + "?_r=" + Date.now());
-    if(rj.ok){
-      const rd = await rj.json();
-      window.RECS = rd.recommended || [];
-    } else { window.RECS = []; }
-  }catch(e){ window.RECS = []; }
-
-  // Hide loader, show app
-  document.getElementById("ldscr").style.display = "none";
-  document.getElementById("app").style.display   = "flex";
-
-  // Browser mode: show browser bar
-  if(isBrowser){
-    const bar = document.getElementById("browser-bar");
-    if(bar) bar.style.display = "flex";
-  }
-
-  buildCatBar();
-  buildList();
-  initPiP(); // set up Picture-in-Picture
-  buildRecommended(); // show recommended channels strip
-
-  // Start on the channel that was tapped in bot
-  let si = ALL.findIndex(c => c.url === initUrl);
-  if(si < 0) si = 0;
-  play(si);
-}
-
-// ── Recommended Channels Strip ────────────────────
-function buildRecommended(){
-  const sec = document.getElementById("rec-section");
-  const row = document.getElementById("rec-row");
-  if(!sec || !row) return;
-
-  // Get recommended from channels.json (already fetched into allChannels)
-  // They are flagged in channels.json under "recommended" key
-  // We stored them separately — read from window.RECS set during fetch
-  const recs = window.RECS || [];
-  if(!recs.length){ sec.classList.add("empty"); return; }
-
-  sec.classList.remove("empty");
-  row.innerHTML = "";
-
-  // Show ALL recommended channels — no limit
-  recs.forEach((ch, i)=>{
-    const div = document.createElement("div");
-    div.className = "rec-item";
-    div.id = "rec-" + i;
-
-    // Make icon background match category color
-    const catColors = {
-      news:"#1a3a5c", sports:"#1a3a1a",
-      movies:"#3a1a1a", music:"#2a1a3a"
-    };
-    const bgColor = catColors[ch.cat] || "#1a1a28";
-
-    div.innerHTML =
-      '<div class="rec-icon" style="background:'+bgColor+'">' +
-        cEmoji(ch.cat||"sports") +
-      '</div>'+
-      '<div class="rec-name">' + esc(ch.name) + '</div>';
-
-    div.onclick = ()=>{
-      if(msActive && msPicking){
-        // Multiscreen mode: recommended goes to screen 2
-        playChannelInScreen2({name:ch.name, url:ch.url, cat:ch.cat||"sports"});
-        return;
-      }
-      // Normal mode: find and play
-      const idx = ALL.findIndex(c => c.url === ch.url);
-      if(idx >= 0){
-        activeCat = ch.cat || "all";
-        buildCatBar();
-        buildList();
-        play(idx);
-      } else {
-        ALL.unshift({name:ch.name, url:ch.url, cat:ch.cat||"sports"});
-        activeCat = ch.cat || "all";
-        buildCatBar();
-        buildList();
-        play(0);
-      }
-      // Mark active recommended
-      document.querySelectorAll(".rec-item").forEach(el=>el.classList.remove("active"));
-      div.classList.add("active");
-    };
-    row.appendChild(div);
+// per-slot video state events
+[0,1].forEach(si=>{
+  vids[si].addEventListener("playing", ()=>{
+    startStall(si); errCntS[si]=0; iplayes[si].classList.remove("show");
+    if(si===1) livlbl2.style.display="";
   });
-}
-
-boot();
+  vids[si].addEventListener("error", ()=>{ if(!hlsObj[si]) onFail(si, "video error"); });
+});
 
 // ── Helpers ───────────────────────────────────────────────────
 const CE = {news:"📰",sports:"⚽",movies:"🎬",music:"🎵"};
@@ -802,678 +460,497 @@ function cEmoji(cat){ return CE[(cat||"").toLowerCase()] || "📺"; }
 function cap(s){ return s ? s[0].toUpperCase()+s.slice(1) : s; }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
+// ── FETCH channels.json ───────────────────────────────────────
+async function boot(){
+  try{
+    const r = await fetch(JSON_URL + "?_=" + Date.now());
+    if(r.ok){
+      const j = await r.json();
+      ["news","sports","movies","music"].forEach(cat=>{
+        (j[cat]||[]).forEach(ch=>{ if(!ch.hidden) ALL.push({name:ch.name||"",url:ch.url||"",cat:cat}); });
+      });
+    }
+  }catch(e){}
+  if(!ALL.length && initUrl) ALL = [{name:initNm,url:initUrl,cat:initCat}];
+
+  document.getElementById("ldscr").style.display="none";
+  document.getElementById("app").style.display="flex";
+  buildCatBar();
+  buildList();
+  initPiP();
+
+  let si = ALL.findIndex(c=>c.url===initUrl);
+  if(si<0) si=0;
+  play(0, si);
+}
+boot();
+
+// ── Multi-Screen ──────────────────────────────────────────────
+// when multi-screen is activated, slot2 starts muted to avoid audio clash
+function toggleMultiScreen(){
+  multiOn = !multiOn;
+  const wrap = document.getElementById("players-wrap");
+  wrap.classList.toggle("multi", multiOn);
+  msbtn.classList.toggle("ms-on", multiOn);
+  msbtn.title = multiOn ? "Exit Multi Screen" : "Multi Screen";
+  msbtn.textContent = multiOn ? "⊟" : "⊞";
+
+  if(multiOn){
+    pickingSlot = 0;
+    setActiveSlot(0);
+    // Auto-mute slot2 so both audios don't fight
+    mutedS[1]=true; vids[1].muted=true; mbtnEls[1].textContent="🔇";
+    toast("📺📺 Multi Screen ON");
+    buildList();
+    livlbl2.style.display="none";
+    showSt(1,"Select a channel",false,"Tap a channel to play on Screen 2");
+  } else {
+    destroyHls(1);
+    vids[1].pause();
+    CUR[1] = -1;
+    pickingSlot = 0;
+    setActiveSlot(0);
+    livlbl2.style.display="none";
+    buildList();
+    toast("Single screen mode");
+  }
+}
+
+function closeSlot2(){
+  if(multiOn) toggleMultiScreen();
+}
+
+// Highlight which slot is "active" (which screen the next channel tap goes to)
+function setActiveSlot(si){
+  pickingSlot = si;
+  slots[0].classList.toggle("active-slot", si===0);
+  slots[1].classList.toggle("active-slot", si===1);
+  slots[0].classList.toggle("pick-me", multiOn && si===1);
+  slots[1].classList.toggle("pick-me", multiOn && si===0);
+}
+
+// Clicking on a slot to "select" it as target for next channel pick
+slots[0].addEventListener("click", e=>{
+  if(!multiOn) return;
+  if(e.target.closest("button,.cb,.qbtn,.qmenu")) return;
+  setActiveSlot(0);
+  toast("Screen 1 selected");
+});
+slots[1].addEventListener("click", e=>{
+  if(!multiOn) return;
+  if(e.target.closest("button,.cb,.qbtn,.qmenu")) return;
+  setActiveSlot(1);
+  toast("Screen 2 selected");
+});
+
 // ── Category bar ──────────────────────────────────────────────
 function buildCatBar(){
   const bar = document.getElementById("catbar");
-  bar.innerHTML = "";
-
-  // "All Channels" button
-  const allBtn = document.createElement("button");
-  allBtn.className = "cfbtn" + (activeCat==="all"?" on":"");
-  allBtn.textContent = "🌐 All Channels";
-  allBtn.onclick = ()=>{ activeCat="all"; buildCatBar(); buildList(); };
+  bar.innerHTML="";
+  const allBtn=document.createElement("button");
+  allBtn.className="cfbtn"+(activeCat==="all"?" on":"");
+  allBtn.textContent="🌐 All Channels";
+  allBtn.onclick=()=>{activeCat="all";buildCatBar();buildList();};
   bar.appendChild(allBtn);
-
-  // One button per category that has channels
-  const cats = [...new Set(ALL.map(c=>c.cat).filter(Boolean))];
+  const cats=[...new Set(ALL.map(c=>c.cat).filter(Boolean))];
   cats.forEach(cat=>{
-    const btn = document.createElement("button");
-    btn.className = "cfbtn" + (activeCat===cat?" on":"");
-    btn.textContent = cEmoji(cat)+" "+cap(cat);
-    btn.onclick = ()=>{ activeCat=cat; buildCatBar(); buildList(); };
+    const btn=document.createElement("button");
+    btn.className="cfbtn"+(activeCat===cat?" on":"");
+    btn.textContent=cEmoji(cat)+" "+cap(cat);
+    btn.onclick=()=>{activeCat=cat;buildCatBar();buildList();};
     bar.appendChild(btn);
   });
 }
 
 // ── Channel list ──────────────────────────────────────────────
 function visible(){
-  return ALL.filter(c =>
-    activeCat==="all" || (c.cat||"").toLowerCase()===activeCat.toLowerCase()
-  );
+  return ALL.filter(c=>activeCat==="all"||(c.cat||"").toLowerCase()===activeCat.toLowerCase());
 }
 
 function buildList(){
-  const list = document.getElementById("chlist");
-  list.innerHTML = "";
-  const vis = visible();
-
+  const list=document.getElementById("chlist");
+  list.innerHTML="";
+  const vis=visible();
   if(!vis.length){
-    list.innerHTML = `<p style="color:var(--mt);text-align:center;padding:20px;font-size:13px;">No channels.</p>`;
+    list.innerHTML=`<p style="color:var(--mt);text-align:center;padding:20px;font-size:13px;">No channels.</p>`;
     return;
   }
-
   vis.forEach(ch=>{
-    const i = ALL.indexOf(ch);
-    const d = document.createElement("div");
-    d.className = "chi"+(i===CUR?" pl":"");
-    d.id = "ci"+i;
-    const badge = failed.has(i)
-      ? `<div class="errbg">⚠</div>`
-      : `<div class="livbg">LIVE</div>`;
-    d.innerHTML =
+    const i=ALL.indexOf(ch);
+    const d=document.createElement("div");
+    const isP1=CUR[0]===i, isP2=CUR[1]===i;
+    d.className="chi"+(isP1?" pl":isP2?" pl2":"");
+    d.id="ci"+i;
+
+    // Badge area
+    let badge="";
+    if(failedS[0].has(i)||failedS[1].has(i)) badge=`<div class="errbg">⚠</div>`;
+    else badge=`<div class="livbg">LIVE</div>`;
+
+    // In multi mode, show which slot is playing this channel
+    let slotBadge="";
+    if(multiOn&&isP1) slotBadge=`<div class="slot1-badge">S1</div>`;
+    if(multiOn&&isP2) slotBadge=`<div class="slot2-badge">S2</div>`;
+
+    d.innerHTML=
       `<div class="chiico">${cEmoji(ch.cat)}</div>`+
       `<div class="chinf">`+
         `<div class="chtit">${esc(ch.name)}</div>`+
-        `<div class="chcat">${cEmoji(ch.cat)} ${esc(cap(ch.cat)||"Live TV")}</div>`+
-      `</div>`+badge;
-    d.onclick = ()=>{
-      if(msActive && msPicking){
-        playChannelInScreen2(ALL[i]);
-      } else {
-        failed.delete(i);
-        play(i);
-      }
+        `<div class="chcat">${cEmoji(ch.cat)} ${esc(cap(ch.cat||"Live TV"))}</div>`+
+      `</div>`+slotBadge+badge;
+
+    d.onclick=()=>{
+      const target = multiOn ? pickingSlot : 0;
+      failedS[target].delete(i);
+      play(target, i);
+      // After picking for slot 2, auto-switch focus back to whichever isn't just set
+      if(multiOn && target===1) setActiveSlot(0);
     };
     list.appendChild(d);
   });
 }
 
-function markActive(idx){
+function markActive(){
   document.querySelectorAll(".chi").forEach(el=>{
-    const i = parseInt(el.id.replace("ci",""));
-    el.classList.toggle("pl", i===idx);
+    const i=parseInt(el.id.replace("ci",""));
+    const isP1=CUR[0]===i, isP2=CUR[1]===i;
+    el.className="chi"+(isP1?" pl":isP2?" pl2":"");
+    // Update slot badges
+    const existing=el.querySelectorAll(".slot1-badge,.slot2-badge");
+    existing.forEach(b=>b.remove());
+    if(multiOn){
+      if(isP1){ const b=document.createElement("div"); b.className="slot1-badge"; b.textContent="S1"; el.insertBefore(b,el.lastChild); }
+      if(isP2){ const b=document.createElement("div"); b.className="slot2-badge"; b.textContent="S2"; el.insertBefore(b,el.lastChild); }
+    }
   });
-  const el = document.getElementById("ci"+idx);
-  if(el) el.scrollIntoView({behavior:"smooth",block:"nearest"});
+  // Scroll slot0 channel into view
+  const el0=document.getElementById("ci"+CUR[0]);
+  if(el0) el0.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 
 // ── Play channel ──────────────────────────────────────────────
-function play(idx){
-  clearTimeout(foTimer);
+function play(si, idx){
+  clearTimeout(foTimerS[si]);
   if(idx<0||idx>=ALL.length) return;
-  CUR=idx; errCnt=0;
+  CUR[si]=idx; errCntS[si]=0;
   const ch=ALL[idx];
-  currentOrigUrl = ch.url; // save for proxy retry
-  chnmEl.textContent = ch.name;
-  ctbgEl.textContent = cap(ch.cat)||"TV";
-  markActive(idx);
-  updateInfo(ch);
-  hideFBar();
-  iplay.classList.remove("show");
-  loadStream(ch.url);
+  // Update header only for slot0 (primary)
+  if(si===0){
+    chnmEl.textContent=ch.name;
+    ctbgEl.textContent=cap(ch.cat)||"TV";
+    updateInfo(ch);
+  }
+  markActive();
+  hideFBar(si);
+  iplayes[si].classList.remove("show");
+  loadStream(si, ch.url);
 }
 
 // ── Stream strategy detection ─────────────────────────────────
 function getStrats(url){
   const u=(url||"").toLowerCase().split("?")[0];
-  if(u.includes(".m3u8"))   return ["hls"];
-  if(u.endsWith(".ts"))     return ["hls","direct"];
-  if(u.endsWith(".mp4")&&(u.includes("/live/")||u.includes("/dash/")||u.includes("cdn")))
-                             return ["direct","hls"];
-  if(u.endsWith(".mp4"))    return ["direct","hls"];
-  if(u.includes(".php"))    return ["hls","direct"];
+  if(u.includes(".m3u8")) return ["hls"];
+  if(u.endsWith(".ts")) return ["hls","direct"];
+  if(u.endsWith(".mp4")&&(u.includes("/live/")||u.includes("/dash/")||u.includes("cdn"))) return ["direct","hls"];
+  if(u.endsWith(".mp4")) return ["direct","hls"];
+  if(u.includes(".php")) return ["hls","direct"];
   return ["hls","direct"];
 }
 
-// ── Load stream ───────────────────────────────────────────────
-// ── Mixed Content + Universal Stream Handler ──────────────────
-// http:// streams on https:// pages need special handling on PC.
-// Strategy: use allorigins.win as a reliable HLS-compatible proxy.
-// It fetches and serves the M3U8 manifest + rewrites segment URLs.
-
-function isMobile(){
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+function loadStream(si, url){
+  showSt(si,"Connecting...",true,"");
+  destroyHls(si);
+  if(!url){ showSt(si,"No URL.",false,""); return; }
+  stratsS[si]=getStrats(url);
+  stIdxS[si]=0;
+  tryNext(si, url);
 }
 
-function isMixedContent(url){
-  return url.startsWith("http://") && location.protocol === "https:";
+function tryNext(si, url){
+  if(stIdxS[si]>=stratsS[si].length){ onFail(si,"All formats failed"); return; }
+  const s=stratsS[si][stIdxS[si]];
+  showSt(si,"Connecting...",true,s==="hls"?"Trying HLS…":"Trying direct…");
+  s==="hls" ? tryHLS(si,url) : tryDirect(si,url);
 }
 
-// Rewrite http:// stream URL through allorigins proxy
-// allorigins returns raw content with correct headers for HLS
-function toProxyUrl(url){
-  return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-}
-
-// For HLS.js: custom loader that rewrites ALL segment URLs through proxy
-function makeProxyLoader(originalBaseUrl){
-  const defaultLoader = Hls.DefaultConfig.loader;
-  class ProxyLoader extends defaultLoader {
-    load(context, config, callbacks){
-      // If URL is http:// rewrite through proxy
-      if(context.url && context.url.startsWith("http://")){
-        context.url = toProxyUrl(context.url);
-      }
-      super.load(context, config, callbacks);
-    }
-  }
-  return ProxyLoader;
-}
-
-function loadStream(url){
-  showSt("Connecting...",true,"");
-  destroyHls();
-  if(!url){ showSt("No URL.",false,""); return; }
-
-  // Mobile: play directly, no proxy needed
-  if(isMobile()){
-    strats = getStrats(url);
-    stIdx  = 0;
-    tryNext(url);
-    return;
-  }
-
-  // PC with http:// stream: use proxy loader
-  if(isMixedContent(url)){
-    loadWithProxyLoader(url);
-    return;
-  }
-
-  // PC with https:// stream: play normally
-  strats = getStrats(url);
-  stIdx  = 0;
-  tryNext(url);
-}
-
-function loadWithProxyLoader(url){
-  showSt("Connecting...",true,"Loading stream...");
+function tryHLS(si, url){
+  destroyHls(si);
+  const vid=vids[si];
+  // Reduce buffer aggressively for slot2 (or when multi is on) to prevent mobile freeze
+  const isSecondary = si===1 || (si===0 && multiOn);
+  const bufLen  = isSecondary ? 8  : 20;
+  const maxBuf  = isSecondary ? 16 : 40;
+  const backBuf = isSecondary ? 4  : 10;
 
   if(Hls.isSupported()){
-    const ProxyLoader = makeProxyLoader(url);
-    hls = new Hls({
-      enableWorker: false, // must be false when using custom loader
-      startLevel: -1,
-      abrEwmaDefaultEstimate: 500000,
-      abrBandWidthFactor: 0.8,
-      maxBufferLength: 20,
-      backBufferLength: 10,
-      manifestLoadingMaxRetry: 3,
-      levelLoadingMaxRetry: 3,
-      fragLoadingMaxRetry: 3,
-      loader: ProxyLoader,
-      xhrSetup: function(xhr, reqUrl){
-        xhr.withCredentials = false;
-        // Ensure all http:// XHR requests go through proxy
-        if(reqUrl && reqUrl.startsWith("http://")){
-          // HLS.js will use ProxyLoader but set CORS header
-          xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-        }
-      }
-    });
-
-    // Load manifest through proxy
-    const proxiedManifest = toProxyUrl(url);
-    hls.loadSource(proxiedManifest);
-    hls.attachMedia(vid);
-
-    hls.on(Hls.Events.MANIFEST_PARSED, (e, d)=>{
-      buildQMenu(d.levels);
-      hls.currentLevel = -1;
-      vid.play().catch(()=>{
-        vid.muted = true;
-        mbtn.textContent = "🔇";
-        muted = true;
-        vid.play().catch(()=>{});
-      });
-      hideSt();
-      updateNetLbl();
-      errCnt = 0;
-    });
-
-    hls.on(Hls.Events.ERROR, (e, d)=>{
-      if(d.fatal){
-        if(d.type === Hls.ErrorTypes.NETWORK_ERROR && errCnt < 2){
-          errCnt++;
-          showSt("Reconnecting...",true,"");
-          hls.startLoad();
-        } else if(d.type === Hls.ErrorTypes.MEDIA_ERROR && errCnt < 2){
-          errCnt++;
-          hls.recoverMediaError();
-        } else {
-          // Proxy failed too — try direct as absolute last resort
-          showSt("Connecting...",true,"Trying direct...");
-          destroyHls();
-          hls = new Hls({
-            enableWorker:true, startLevel:-1,
-            abrEwmaDefaultEstimate:500000,
-            maxBufferLength:20, backBufferLength:10,
-          });
-          hls.loadSource(url);
-          hls.attachMedia(vid);
-          hls.on(Hls.Events.MANIFEST_PARSED,()=>{
-            vid.play().catch(()=>{});
-            hideSt();
-          });
-          hls.on(Hls.Events.ERROR,(e2,d2)=>{
-            if(d2.fatal) onFail("Stream unavailable on PC");
-          });
-        }
-      }
-    });
-
-  } else if(vid.canPlayType("application/vnd.apple.mpegurl")){
-    // Safari native HLS — try proxy URL
-    vid.src = toProxyUrl(url);
-    vid.onloadedmetadata = ()=>{ vid.play().catch(()=>{}); hideSt(); buildQMenu([]); };
-    vid.onerror = ()=>{
-      // Try direct
-      vid.src = url;
-      vid.onloadedmetadata = ()=>{ vid.play().catch(()=>{}); hideSt(); };
-      vid.onerror = ()=>{ onFail("Stream unavailable"); };
-    };
-  } else {
-    onFail("Browser does not support HLS");
-  }
-}
-
-
-
-function tryNext(url){
-  if(stIdx>=strats.length){ onFail("All formats failed"); return; }
-  const s=strats[stIdx];
-  showSt("Connecting...",true, s==="hls"?"Trying HLS…":"Trying direct…");
-  s==="hls" ? tryHLS(url) : tryDirect(url);
-}
-
-function tryHLS(url){
-  destroyHls();
-  if(Hls.isSupported()){
-    hls = new Hls({
+    const h=new Hls({
       enableWorker:true, startLevel:-1,
-      abrEwmaDefaultEstimate:500000, abrBandWidthFactor:.8, abrBandWidthUpFactor:.7,
-      maxBufferLength:20, maxMaxBufferLength:40, backBufferLength:10,
+      abrEwmaDefaultEstimate: isSecondary ? 300000 : 500000,
+      abrBandWidthFactor:.8, abrBandWidthUpFactor:.7,
+      maxBufferLength: bufLen,
+      maxMaxBufferLength: maxBuf,
+      backBufferLength: backBuf,
       manifestLoadingMaxRetry:2, levelLoadingMaxRetry:2, fragLoadingMaxRetry:2,
       manifestLoadingRetryDelay:600,
-      xhrSetup: xhr=>{ xhr.withCredentials=false; }
+      // Stagger fragment loads so both players don't hammer network at same time
+      fragLoadingRetryDelay: isSecondary ? 400 : 200,
+      xhrSetup:xhr=>{ xhr.withCredentials=false; }
     });
-    hls.loadSource(url);
-    hls.attachMedia(vid);
-    hls.on(Hls.Events.MANIFEST_PARSED,(e,d)=>{
-      buildQMenu(d.levels);
-      hls.currentLevel = -1;
-      const p = vid.play();
-      if(p && p.catch){
-        p.catch(()=>{
-          // Autoplay blocked (common on iOS)
-          if(isIOS){ iplay.classList.add("show"); hideSt(); }
-          else { vid.muted=true; mbtn.textContent="🔇"; muted=true; vid.play().catch(()=>{}); }
-        });
-      }
-      hideSt(); updateNetLbl(); errCnt=0;
+    hlsObj[si]=h;
+    h.loadSource(url);
+    h.attachMedia(vid);
+    h.on(Hls.Events.MANIFEST_PARSED,(e,d)=>{
+      buildQMenu(si,d.levels);
+      h.currentLevel=-1;
+      const p=vid.play();
+      if(p&&p.catch) p.catch(()=>{
+        if(isIOS){ iplayes[si].classList.add("show"); hideSt(si); }
+        else { vid.muted=true; mbtnEls[si].textContent="🔇"; mutedS[si]=true; vid.play().catch(()=>{}); }
+      });
+      hideSt(si); updateNetLbl(si); errCntS[si]=0;
     });
-    hls.on(Hls.Events.LEVEL_SWITCHED, ()=>updateNetLbl());
-    hls.on(Hls.Events.ERROR,(e,d)=>{
+    h.on(Hls.Events.LEVEL_SWITCHED,()=>updateNetLbl(si));
+    h.on(Hls.Events.ERROR,(e,d)=>{
       if(d.fatal){
-        if(d.type===Hls.ErrorTypes.NETWORK_ERROR && errCnt<2){
-          errCnt++; showSt("Reconnecting...",true,"Network issue"); hls.startLoad();
-        } else if(d.type===Hls.ErrorTypes.MEDIA_ERROR && errCnt<2){
-          errCnt++; showSt("Recovering...",true,""); hls.recoverMediaError();
-        } else { stIdx++; tryNext(url); }
+        if(d.type===Hls.ErrorTypes.NETWORK_ERROR&&errCntS[si]<2){
+          errCntS[si]++; showSt(si,"Reconnecting...",true,"Network issue"); h.startLoad();
+        } else if(d.type===Hls.ErrorTypes.MEDIA_ERROR&&errCntS[si]<2){
+          errCntS[si]++; showSt(si,"Recovering...",true,""); h.recoverMediaError();
+        } else { stIdxS[si]++; tryNext(si,url); }
       }
     });
   } else if(vid.canPlayType("application/vnd.apple.mpegurl")){
-    // Safari/iOS native HLS
-    vid.src = url;
-    vid.onloadedmetadata = ()=>{
-      buildQMenu([]);
-      const p = vid.play();
-      if(p && p.catch) p.catch(()=>{ iplay.classList.add("show"); });
-      hideSt();
+    vid.src=url;
+    vid.onloadedmetadata=()=>{
+      buildQMenu(si,[]);
+      const p=vid.play();
+      if(p&&p.catch) p.catch(()=>{ iplayes[si].classList.add("show"); });
+      hideSt(si);
     };
-    vid.onerror = ()=>{ stIdx++; tryNext(url); };
-  } else { stIdx++; tryNext(url); }
+    vid.onerror=()=>{ stIdxS[si]++; tryNext(si,url); };
+  } else { stIdxS[si]++; tryNext(si,url); }
 }
 
-function tryDirect(url){
-  destroyHls();
-  vid.src = url;
-  let ok = false;
-  const t = setTimeout(()=>{ if(!ok){ stIdx++; tryNext(url); } }, 9000);
-  vid.oncanplay = ()=>{
+function tryDirect(si, url){
+  destroyHls(si);
+  const vid=vids[si];
+  vid.src=url;
+  let ok=false;
+  const t=setTimeout(()=>{ if(!ok){ stIdxS[si]++; tryNext(si,url); }},9000);
+  vid.oncanplay=()=>{
     ok=true; clearTimeout(t);
-    const p = vid.play();
-    if(p && p.catch) p.catch(()=>{
-      if(isIOS){ iplay.classList.add("show"); hideSt(); }
-      else { vid.muted=true; mbtn.textContent="🔇"; muted=true; vid.play().catch(()=>{}); }
+    const p=vid.play();
+    if(p&&p.catch) p.catch(()=>{
+      if(isIOS){ iplayes[si].classList.add("show"); hideSt(si); }
+      else { vid.muted=true; mbtnEls[si].textContent="🔇"; mutedS[si]=true; vid.play().catch(()=>{}); }
     });
-    hideSt(); buildQMenu([]); errCnt=0;
+    hideSt(si); buildQMenu(si,[]); errCntS[si]=0;
   };
-  vid.onerror = ()=>{ clearTimeout(t); stIdx++; tryNext(url); };
+  vid.onerror=()=>{ clearTimeout(t); stIdxS[si]++; tryNext(si,url); };
 }
 
-// iPhone tap-to-play
-function iphonePlay(){
-  iplay.classList.remove("show");
-  vid.play().catch(()=>{});
-}
+function iphonePlay(si){ iplayes[si].classList.remove("show"); vids[si].play().catch(()=>{}); }
 
 // ── Failover ──────────────────────────────────────────────────
-function onFail(reason){
-  failed.add(CUR); buildList();
-  const next = findNext();
-  if(next===-1){ showSt("No streams available",false,"All channels offline"); return; }
-  const nm = ALL[CUR]?.name || "Channel";
-  showFBar(`⚡ "${nm}" unavailable — switching...`);
-  showSt("Switching...",true,"");
-  foTimer = setTimeout(()=>{ hideFBar(); play(next); }, 2800);
+function onFail(si, reason){
+  failedS[si].add(CUR[si]); buildList();
+  const next=findNext(si);
+  if(next===-1){ showSt(si,"No streams available",false,"All channels offline"); return; }
+  const nm=ALL[CUR[si]]?.name||"Channel";
+  showFBar(si,`⚡ "${nm}" unavailable — switching...`);
+  showSt(si,"Switching...",true,"");
+  foTimerS[si]=setTimeout(()=>{ hideFBar(si); play(si,next); },2800);
 }
-function findNext(){
+function findNext(si){
   for(let i=1;i<=ALL.length;i++){
-    const idx=(CUR+i)%ALL.length;
-    if(!failed.has(idx)) return idx;
+    const idx=(CUR[si]+i)%ALL.length;
+    if(!failedS[si].has(idx)) return idx;
   }
   return -1;
 }
 
 // ── Stall detection ───────────────────────────────────────────
-function startStall(){
-  stopStall(); lastT=-1; stlCnt=0;
-  stlTimer=setInterval(()=>{
-    if(vid.paused||vid.ended||vid.readyState<2) return;
-    if(vid.currentTime===lastT){ if(++stlCnt>=3){ stopStall(); onFail("stalled"); } }
-    else { stlCnt=0; lastT=vid.currentTime; }
+function startStall(si){
+  stopStall(si); lastTS[si]=-1; stlCntS[si]=0;
+  stlTimerS[si]=setInterval(()=>{
+    const v=vids[si];
+    if(v.paused||v.ended||v.readyState<2) return;
+    if(v.currentTime===lastTS[si]){ if(++stlCntS[si]>=3){ stopStall(si); onFail(si,"stalled"); }}
+    else { stlCntS[si]=0; lastTS[si]=v.currentTime; }
   },3000);
 }
-function stopStall(){ clearInterval(stlTimer); stlTimer=null; }
-vid.addEventListener("playing", ()=>{ startStall(); errCnt=0; iplay.classList.remove("show"); });
-vid.addEventListener("error",   ()=>{ if(!hls) onFail("video error"); });
+function stopStall(si){ clearInterval(stlTimerS[si]); stlTimerS[si]=null; }
 
-function destroyHls(){
-  stopStall();
-  if(hls){ hls.destroy(); hls=null; }
-  vid.removeAttribute("src"); vid.load();
-  vid.oncanplay=null; vid.onerror=null; vid.onloadedmetadata=null;
-  levels=[]; qbtn.textContent="AUTO"; qmenu.innerHTML=""; netlbl.textContent="";
+function destroyHls(si){
+  stopStall(si);
+  const v=vids[si];
+  if(hlsObj[si]){ hlsObj[si].destroy(); hlsObj[si]=null; }
+  v.removeAttribute("src"); v.load();
+  v.oncanplay=null; v.onerror=null; v.onloadedmetadata=null;
+  levelsS[si]=[]; qbtnEls[si].textContent="AUTO"; qmenEls[si].innerHTML=""; netlbls[si].textContent="";
 }
 
 // ── State display ─────────────────────────────────────────────
-function showSt(t,l,s){ vstEl.classList.remove("h"); stxtEl.textContent=t; ssubEl.textContent=s||""; spnEl.style.display=l?"block":"none"; }
-function hideSt()      { vstEl.classList.add("h"); }
-function showFBar(m)   { fbar.textContent=m; fbar.style.display="block"; }
-function hideFBar()    { fbar.style.display="none"; }
+function showSt(si,t,l,s){
+  const el=vstEls[si];
+  el.classList.remove("h");
+  el.querySelector(".stxt").textContent=t;
+  el.querySelector(".ssub").textContent=s||"";
+  el.querySelector(".spin").style.display=l?"block":"none";
+}
+function hideSt(si){ vstEls[si].classList.add("h"); }
+function showFBar(si,m){ fobarEls[si].textContent=m; fobarEls[si].style.display="block"; }
+function hideFBar(si){ fobarEls[si].style.display="none"; }
 
 // ── Quality ───────────────────────────────────────────────────
-function buildQMenu(lvls){
-  levels=lvls; qmenu.innerHTML="";
-  const a=document.createElement("div"); a.className="qo active"; a.textContent="🔄 AUTO"; a.onclick=()=>setQ(-1); qmenu.appendChild(a);
+function buildQMenu(si,lvls){
+  levelsS[si]=lvls; qmenEls[si].innerHTML="";
+  const a=document.createElement("div"); a.className="qo active"; a.textContent="🔄 AUTO"; a.onclick=()=>setQ(si,-1); qmenEls[si].appendChild(a);
   [...lvls].sort((a,b)=>(b.height||0)-(a.height||0)).forEach(lv=>{
     const orig=lvls.indexOf(lv); const lbl=lv.height?lv.height+"p":"Lvl "+(orig+1);
-    const o=document.createElement("div"); o.className="qo"; o.textContent=lbl; o.onclick=()=>setQ(orig); qmenu.appendChild(o);
+    const o=document.createElement("div"); o.className="qo"; o.textContent=lbl; o.onclick=()=>setQ(si,orig); qmenEls[si].appendChild(o);
   });
-  qbtn.style.display=lvls.length?"":"none";
+  qbtnEls[si].style.display=lvls.length?"":"none";
 }
-function setQ(idx){
-  if(hls) hls.currentLevel=idx; qmenu.classList.remove("open");
-  document.querySelectorAll(".qo").forEach((el,i)=>el.classList.toggle("active",i===0&&idx===-1));
-  qbtn.textContent=idx===-1?"AUTO":(levels[idx]?.height?levels[idx].height+"p":"AUTO");
-  updateNetLbl();
+function setQ(si,idx){
+  if(hlsObj[si]) hlsObj[si].currentLevel=idx;
+  qmenEls[si].classList.remove("open");
+  document.querySelectorAll("#qmenu"+(si+1)+" .qo").forEach((el,i)=>el.classList.toggle("active",i===0&&idx===-1));
+  qbtnEls[si].textContent=idx===-1?"AUTO":(levelsS[si][idx]?.height?levelsS[si][idx].height+"p":"AUTO");
+  updateNetLbl(si);
 }
-function toggleQ(){ if(!levels.length){toast("Quality N/A");return;} qmenu.classList.toggle("open"); }
-function updateNetLbl(){
-  if(!hls){netlbl.textContent="";return;}
-  const l=hls.currentLevel, lv=levels[l];
-  if(l<0||!lv){netlbl.textContent="AUTO";return;}
+function toggleQ(si){
+  if(!levelsS[si].length){ toast("Quality N/A"); return; }
+  qmenEls[si].classList.toggle("open");
+}
+function updateNetLbl(si){
+  if(!hlsObj[si]){ netlbls[si].textContent=""; return; }
+  const l=hlsObj[si].currentLevel, lv=levelsS[si][l];
+  if(l<0||!lv){ netlbls[si].textContent="AUTO"; return; }
   const h=lv.height||0;
-  netlbl.textContent=h>=1080?"1080p":h>=720?"720p":h>=480?"480p":h>=360?"360p":h>0?h+"p":"AUTO";
+  netlbls[si].textContent=h>=1080?"1080p":h>=720?"720p":h>=480?"480p":h>=360?"360p":h>0?h+"p":"AUTO";
 }
 
 // ── Mute ──────────────────────────────────────────────────────
-function toggleMute(){ muted=!muted; vid.muted=muted; mbtn.textContent=muted?"🔇":"🔊"; toast(muted?"🔇 Muted":"🔊 Sound On"); }
+function toggleMute(si){ mutedS[si]=!mutedS[si]; vids[si].muted=mutedS[si]; mbtnEls[si].textContent=mutedS[si]?"🔇":"🔊"; toast(mutedS[si]?"🔇 Screen "+(si+1)+" Muted":"🔊 Screen "+(si+1)+" Sound On"); }
 
-// ── Portrait ──────────────────────────────────────────────────
-function togglePortrait(){
-  rotOn=!rotOn; document.body.classList.toggle("rot",rotOn);
+// ── Portrait / Landscape lock ─────────────────────────────────
+let rotOn=false;
+async function togglePortrait(){
+  rotOn=!rotOn;
   pbtn.textContent=rotOn?"↺":"⟳";
-  if(rotOn&&(fsOn||natFS)) exitFS();
-  toast(rotOn?"📱 Portrait — tap ↺ to restore":"↩️ Normal view");
-}
 
-// ── Picture-in-Picture (Mini Player) ─────────────────────────
-// Uses browser native PiP API — works on Chrome, Edge, Safari, Firefox
-// Falls back to a floating mini overlay for unsupported browsers
-
-let pipActive = false;
-
-function initPiP(){
-  const pipBtn = document.getElementById("pipbtn");
-  // Hide button if PiP not supported at all
-  if(!document.pictureInPictureEnabled && !vid.webkitSupportsPresentationMode){
-    if(pipBtn) pipBtn.classList.add("hidden");
-    return;
+  // Try Screen Orientation API first (works on Android Chrome, Samsung etc.)
+  const ori = screen.orientation || screen.msOrientation;
+  if(ori && ori.lock){
+    try{
+      if(rotOn){
+        await ori.lock("landscape");
+        toast("📱 Landscape locked");
+      } else {
+        ori.unlock();
+        toast("↩️ Orientation unlocked");
+      }
+      document.body.classList.toggle("rot", rotOn);
+      return;
+    }catch(e){
+      // API exists but denied (iOS, desktop) — fall through to CSS fallback
+    }
   }
 
-  // Track PiP enter/exit events
-  vid.addEventListener("enterpictureinpicture", ()=>{
-    pipActive = true;
-    document.getElementById("pipbtn").textContent = "⊞";
-    document.getElementById("pip-overlay").classList.add("show");
-    toast("📺 Mini Player ON");
-  });
+  // iOS/desktop fallback: just toggle class for layout hint, no rotation
+  document.body.classList.toggle("rot", rotOn);
+  if(rotOn){
+    toast("📱 Rotate your device to landscape");
+  } else {
+    toast("↩️ Normal view");
+  }
+}
 
-  vid.addEventListener("leavepictureinpicture", ()=>{
-    pipActive = false;
-    document.getElementById("pipbtn").textContent = "⊡";
+// ── Picture-in-Picture ────────────────────────────────────────
+let pipActive=false;
+function initPiP(){
+  const pipBtn=document.getElementById("pipbtn");
+  if(!document.pictureInPictureEnabled&&!vids[0].webkitSupportsPresentationMode){
+    if(pipBtn) pipBtn.classList.add("hidden"); return;
+  }
+  vids[0].addEventListener("enterpictureinpicture",()=>{
+    pipActive=true; document.getElementById("pipbtn").textContent="⊞";
+    document.getElementById("pip-overlay").classList.add("show"); toast("📺 Mini Player ON");
+  });
+  vids[0].addEventListener("leavepictureinpicture",()=>{
+    pipActive=false; document.getElementById("pipbtn").textContent="⊡";
     document.getElementById("pip-overlay").classList.remove("show");
   });
 }
-
 async function togglePiP(){
-  // If already in PiP → exit PiP
-  if(document.pictureInPictureElement){
-    try{
-      await document.exitPictureInPicture();
-    }catch(e){ toast("Could not exit mini player"); }
+  if(document.pictureInPictureElement){ try{ await document.exitPictureInPicture(); }catch(e){} return; }
+  if(vids[0].webkitSupportsPresentationMode&&typeof vids[0].webkitSetPresentationMode==="function"){
+    const mode=vids[0].webkitPresentationMode==="picture-in-picture"?"inline":"picture-in-picture";
+    vids[0].webkitSetPresentationMode(mode);
+    pipActive=(mode==="picture-in-picture");
+    document.getElementById("pipbtn").textContent=pipActive?"⊞":"⊡";
+    if(pipActive){ document.getElementById("pip-overlay").classList.add("show"); toast("📺 Mini Player ON!"); }
+    else document.getElementById("pip-overlay").classList.remove("show");
     return;
   }
-
-  // Safari / iOS WebKit PiP
-  if(vid.webkitSupportsPresentationMode && typeof vid.webkitSetPresentationMode === "function"){
-    const mode = vid.webkitPresentationMode === "picture-in-picture" ? "inline" : "picture-in-picture";
-    vid.webkitSetPresentationMode(mode);
-    pipActive = (mode === "picture-in-picture");
-    document.getElementById("pipbtn").textContent = pipActive ? "⊞" : "⊡";
-    if(pipActive){
-      document.getElementById("pip-overlay").classList.add("show");
-      toast("📺 Mini Player ON — continue browsing!");
-    } else {
-      document.getElementById("pip-overlay").classList.remove("show");
-    }
-    return;
-  }
-
-  // Standard PiP API (Chrome, Edge, Firefox)
   if(document.pictureInPictureEnabled){
-    try{
-      // Video must be playing for PiP to work
-      if(vid.paused){ vid.play().catch(()=>{}); }
-      await vid.requestPictureInPicture();
-      toast("📺 Mini Player ON — continue browsing!");
-    }catch(e){
-      // PiP blocked (autoplay policy etc.) — use floating fallback
-      useFloatingFallback();
-    }
+    try{ if(vids[0].paused) vids[0].play().catch(()=>{}); await vids[0].requestPictureInPicture(); toast("📺 Mini Player ON!"); }
+    catch(e){ toast("Mini Player not supported here"); }
     return;
   }
-
-  // No PiP API at all → floating fallback
-  useFloatingFallback();
+  toast("Mini Player not supported");
 }
-
 function returnFromPiP(){
   document.getElementById("pip-overlay").classList.remove("show");
-  if(document.pictureInPictureElement){
-    document.exitPictureInPicture().catch(()=>{});
-  }
-  if(vid.webkitPresentationMode === "picture-in-picture"){
-    vid.webkitSetPresentationMode("inline");
-  }
-  pipActive = false;
-  document.getElementById("pipbtn").textContent = "⊡";
-}
-
-// Floating mini player fallback for unsupported browsers
-function useFloatingFallback(){
-  // If floating player already exists, remove it
-  const existing = document.getElementById("float-pip");
-  if(existing){ existing.remove(); pipActive=false; document.getElementById("pipbtn").textContent="⊡"; return; }
-
-  pipActive = true;
-  document.getElementById("pipbtn").textContent = "⊞";
-
-  const fp = document.createElement("div");
-  fp.id = "float-pip";
-  fp.style.cssText = `
-    position:fixed;bottom:70px;right:12px;width:200px;height:115px;
-    background:#000;border-radius:10px;overflow:hidden;
-    box-shadow:0 4px 20px rgba(0,0,0,.7);z-index:999999;
-    cursor:move;border:2px solid rgba(233,69,96,.5);
-  `;
-
-  // Clone video source into a new small video element
-  const miniVid = document.createElement("video");
-  miniVid.style.cssText = "width:100%;height:100%;object-fit:contain;";
-  miniVid.muted = false;
-  miniVid.autoplay = true;
-  miniVid.src = vid.src;
-  if(window.hls){
-    // HLS streams: just show a notice, can't clone HLS easily
-    fp.innerHTML = `<div style="color:#fff;font-size:11px;text-align:center;padding:10px;line-height:1.4;">
-      📺 Playing in background<br><span style="color:#e94560;font-size:10px;">Tap here to return</span></div>`;
-  } else {
-    fp.appendChild(miniVid);
-  }
-
-  // Close button
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "✕";
-  closeBtn.style.cssText = `
-    position:absolute;top:4px;right:6px;background:rgba(233,69,96,.8);
-    border:none;color:#fff;border-radius:50%;width:20px;height:20px;
-    font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;
-  `;
-  closeBtn.onclick = ()=>{ fp.remove(); pipActive=false; document.getElementById("pipbtn").textContent="⊡"; };
-  fp.appendChild(closeBtn);
-
-  // Drag to move
-  let isDragging=false, dragX=0, dragY=0;
-  fp.addEventListener("mousedown", e=>{
-    if(e.target===closeBtn) return;
-    isDragging=true;
-    dragX=e.clientX-fp.offsetLeft;
-    dragY=e.clientY-fp.offsetTop;
-  });
-  document.addEventListener("mousemove", e=>{
-    if(!isDragging) return;
-    fp.style.left = (e.clientX-dragX)+"px";
-    fp.style.top  = (e.clientY-dragY)+"px";
-    fp.style.right = "auto"; fp.style.bottom = "auto";
-  });
-  document.addEventListener("mouseup", ()=>{ isDragging=false; });
-
-  // Touch drag for mobile
-  fp.addEventListener("touchstart", e=>{
-    if(e.target===closeBtn) return;
-    const t=e.touches[0];
-    dragX=t.clientX-fp.offsetLeft; dragY=t.clientY-fp.offsetTop;
-  },{passive:true});
-  fp.addEventListener("touchmove", e=>{
-    const t=e.touches[0];
-    fp.style.left=(t.clientX-dragX)+"px";
-    fp.style.top=(t.clientY-dragY)+"px";
-    fp.style.right="auto"; fp.style.bottom="auto";
-  },{passive:true});
-
-  document.body.appendChild(fp);
-  toast("📺 Mini Player — drag to move, ✕ to close");
+  if(document.pictureInPictureElement) document.exitPictureInPicture().catch(()=>{});
+  if(vids[0].webkitPresentationMode==="picture-in-picture") vids[0].webkitSetPresentationMode("inline");
+  pipActive=false; document.getElementById("pipbtn").textContent="⊡";
 }
 
 // ── Fullscreen ────────────────────────────────────────────────
-// Uses CSS-based fullscreen which works reliably in ALL contexts:
-// Telegram Desktop, Telegram Web, Telegram Mobile, and normal browsers.
-// The CSS body.fsm class hides all UI and makes the video fill 100vw/100vh.
-// Native browser fullscreen API is attempted first as a bonus on desktop.
-
+let fsOn=false, natFS=false;
 function toggleFS(){
-  if(rotOn){ toast("Exit portrait first"); return; }
-
-  // If already in any fullscreen mode → EXIT
-  if(fsOn || natFS || document.fullscreenElement || document.webkitFullscreenElement){
-    doExitFS();
-    return;
-  }
-
-  // ENTER fullscreen:
-  // Step 1 — always apply CSS fullscreen immediately (works everywhere)
+  if(fsOn||natFS||document.fullscreenElement||document.webkitFullscreenElement){ doExitFS(); return; }
   enterCssFS();
-
-  // Step 2 — also try native browser fullscreen API (bonus for desktop)
-  // We try vsec first (video container), then documentElement
-  const targets = [
-    document.getElementById("vsec"),
-    document.documentElement
-  ];
-  let requested = false;
+  const targets=[document.getElementById("players-wrap"),document.documentElement];
   for(const el of targets){
-    const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-    if(fn){
-      try{
-        fn.call(el);
-        requested = true;
-        break;
-      }catch(e){}
-    }
+    const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+    if(fn){ try{ fn.call(el); break; }catch(e){} }
   }
 }
-
 function enterCssFS(){
-  fsOn = true;
-  document.documentElement.classList.add("fsm"); // html element
-  document.body.classList.add("fsm");            // body element
-  fbtn.textContent = "✕";
-  const hint = document.getElementById("fs-hint");
-  if(hint) hint.style.display = "flex";
+  fsOn=true;
+  document.documentElement.classList.add("fsm");
+  document.body.classList.add("fsm");
+  fbtn.textContent="✕";
+  document.getElementById("fs-hint").style.display="flex";
   toast("📺 Fullscreen ON — tap ✕ to exit");
 }
-
 function exitCssFS(){
-  fsOn = false;
+  fsOn=false;
   document.documentElement.classList.remove("fsm");
   document.body.classList.remove("fsm");
-  fbtn.textContent = "⛶";
-  const hint = document.getElementById("fs-hint");
-  if(hint) hint.style.display = "none";
+  fbtn.textContent="⛶";
+  document.getElementById("fs-hint").style.display="none";
 }
-
 function doExitFS(){
-  // Exit native fullscreen if active
-  const exitFn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-  if(exitFn && (document.fullscreenElement || document.webkitFullscreenElement)){
-    try{ exitFn.call(document); }catch(e){}
-  }
-  // Always also exit CSS fullscreen
-  exitCssFS();
-  natFS = false;
+  const exitFn=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen||document.msExitFullscreen;
+  if(exitFn&&(document.fullscreenElement||document.webkitFullscreenElement)){ try{ exitFn.call(document); }catch(e){} }
+  exitCssFS(); natFS=false;
 }
-
-function exitNatFS(){ doExitFS(); }
 function exitFS(){ doExitFS(); }
-
-// Sync state when native fullscreen changes
 ["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"].forEach(ev=>{
-  document.addEventListener(ev, ()=>{
-    const isNative = !!(document.fullscreenElement || document.webkitFullscreenElement);
-    if(isNative){
-      natFS = true;
-      document.documentElement.classList.add("fsm");
-      document.body.classList.add("fsm");
-      fbtn.textContent = "✕";
-    } else {
-      natFS = false;
-      if(!fsOn){
-        document.documentElement.classList.remove("fsm");
-        document.body.classList.remove("fsm");
-        fbtn.textContent = "⛶";
-        const hint = document.getElementById("fs-hint");
-        if(hint) hint.style.display = "none";
-      }
-    }
+  document.addEventListener(ev,()=>{
+    const isNative=!!(document.fullscreenElement||document.webkitFullscreenElement);
+    if(isNative){ natFS=true; document.documentElement.classList.add("fsm"); document.body.classList.add("fsm"); fbtn.textContent="✕"; }
+    else { natFS=false; if(!fsOn){ document.documentElement.classList.remove("fsm"); document.body.classList.remove("fsm"); fbtn.textContent="⛶"; document.getElementById("fs-hint").style.display="none"; } }
   });
 });
-
-document.addEventListener("keydown", e=>{
-  if(e.key === "Escape"){
-    if(fsOn || natFS) doExitFS();
-    if(rotOn){ rotOn=false; document.body.classList.remove("rot"); pbtn.textContent="⟳"; }
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    if(fsOn||natFS) doExitFS();
+    if(rotOn){ rotOn=false; document.body.classList.remove("rot"); pbtn.textContent="⟳"; if(screen.orientation&&screen.orientation.unlock) screen.orientation.unlock(); }
   }
 });
 
@@ -1481,8 +958,8 @@ document.addEventListener("keydown", e=>{
 function switchTab(t){
   document.querySelectorAll(".tab").forEach(el=>el.classList.remove("on"));
   document.getElementById("t-"+t).classList.add("on");
-  document.getElementById("chlist").style.display  = t==="ch"?"":"none";
-  document.getElementById("infopan").style.display = t==="in"?"":"none";
+  document.getElementById("chlist").style.display  =t==="ch"?"":"none";
+  document.getElementById("infopan").style.display =t==="in"?"":"none";
 }
 
 // ── Info panel ────────────────────────────────────────────────
@@ -1498,6 +975,8 @@ function updateInfo(ch){
     `<div class="dv"></div>`+
     `<div class="ir"><div class="il">Failover</div><div class="iv">✅ Auto-switch ON</div></div>`+
     `<div class="dv"></div>`+
+    `<div class="ir"><div class="il">Multi Screen</div><div class="iv">${multiOn?"✅ ON — 2 screens active":"⬜ OFF"}</div></div>`+
+    `<div class="dv"></div>`+
     `<div class="ir"><div class="il">Support</div><div class="iv"><a href="https://t.me/FifaLiveTvChat" style="color:var(--r)">💬 FifaLiveTvChat</a></div></div>`;
 }
 
@@ -1507,7 +986,12 @@ function toast(msg){
   el.textContent=msg; el.classList.add("show");
   clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("show"),2300);
 }
-document.addEventListener("click",e=>{ if(!document.getElementById("qw").contains(e.target)) qmenu.classList.remove("open"); });
+
+// Close quality menus on outside click
+document.addEventListener("click",e=>{
+  if(!document.getElementById("qw1").contains(e.target)) qmenEls[0].classList.remove("open");
+  if(!document.getElementById("qw2").contains(e.target)) qmenEls[1].classList.remove("open");
+});
 </script>
 </body>
 </html>
