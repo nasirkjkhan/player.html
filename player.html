@@ -23,131 +23,197 @@ html,body{height:100%;background:var(--dk);color:var(--tx);font-family:'Segoe UI
 #spbtn{font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(233,69,96,.15);
   border:1px solid rgba(233,69,96,.3);color:var(--r);text-decoration:none;flex-shrink:0;font-weight:600;}
 
-/* VIDEO */
-#vsec{flex-shrink:0;position:relative;background:#000;}
-#vid{width:100%;display:block;height:clamp(210px, 38vh, 520px);background:#000;object-fit:contain;}
+/* ── MULTI-SCREEN LAYOUT ────────────────────────────────────── */
+#players-wrap{
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  background:#000;
+  position:relative;
+}
 
-/* ── FULLSCREEN (CSS-based — works in ALL contexts) ── */
-/* Triggered by body.fsm class — always applied on ⛶ click */
-html.fsm, body.fsm{
-  overflow:hidden !important;
-  width:100vw !important;
-  height:100vh !important;
+/* Each player slot */
+.pslot{
+  position:relative;
+  background:#000;
+  flex:1;
+  min-height:0;
 }
-body.fsm #app{
-  display:flex !important;
-  position:fixed !important;
-  inset:0 !important;
-  z-index:99990 !important;
-  flex-direction:column !important;
-  background:#000 !important;
-}
-/* Hide everything except video section */
-body.fsm #hdr    { display:none !important; }
-body.fsm #catbar { display:none !important; }
-body.fsm #tabs   { display:none !important; }
-body.fsm #content{ display:none !important; }
-/* Video section fills ALL space */
-body.fsm #vsec{
-  flex:1 !important;
-  position:relative !important;
-  width:100vw !important;
-  height:100% !important;
-  min-height:0 !important;
-  background:#000 !important;
-}
-/* Video fills the section completely, centered */
-body.fsm #vid{
-  position:absolute !important;
-  top:0 !important; left:0 !important;
-  width:100% !important;
-  height:100% !important;
-  max-width:100vw !important;
-  max-height:100vh !important;
-  object-fit:contain !important;
-  background:#000 !important;
-}
-/* Controls pinned to bottom */
-body.fsm #cbar{
-  position:absolute !important;
-  bottom:0 !important; left:0 !important; right:0 !important;
-  z-index:100000 !important;
-  background:linear-gradient(transparent,rgba(0,0,0,.92)) !important;
-  padding:10px 16px !important;
-}
-body.fsm #vst   { z-index:100001 !important; }
-body.fsm #fovbar{ z-index:100001 !important; }
-body.fsm #iplay { z-index:100002 !important; }
-/* Hint badge */
-body.fsm #fs-hint{ display:flex !important; }
-#fs-hint{
+/* Single slot: hide slot2 */
+#players-wrap:not(.multi) .pslot:nth-child(2){
   display:none;
-  position:fixed;top:12px;right:14px;z-index:100003;
-  background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);
-  font-size:11px;padding:4px 10px;border-radius:20px;
-  pointer-events:none;align-items:center;gap:5px;
 }
 
-/* PORTRAIT */
-body.rot #vsec{position:fixed;top:0;left:0;z-index:99999;
-  width:100vh;height:100vw;
-  transform:rotate(90deg) translateX(0) translateY(-100%);
-  transform-origin:top left;background:#000;display:flex;flex-direction:column;}
-body.rot #vid{flex:1;width:100%;height:0!important;object-fit:contain;}
-body.rot #cbar{position:relative;flex-shrink:0;}
+/* MOBILE multi (< 600px): Screen1 top, Screen2 bottom */
+@media(max-width:599px){
+  #players-wrap.multi{ flex-direction:column; }
+  #players-wrap.multi .pslot{ flex:none; width:100%; }
+  #players-wrap.multi .slot-vid{ height:clamp(120px,26vh,280px) !important; }
+}
 
-/* CONTROLS */
-#cbar{position:absolute;bottom:0;left:0;right:0;padding:7px 10px;
-  background:linear-gradient(transparent,rgba(0,0,0,.92));display:flex;align-items:center;gap:7px;z-index:10;}
-.cb{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:34px;height:34px;
-  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:14px;
+/* DESKTOP multi (>= 600px): Screen1 left, Screen2 right */
+@media(min-width:600px){
+  #players-wrap.multi{ flex-direction:row; }
+  #players-wrap.multi .pslot{ flex:1; min-width:0; }
+  #players-wrap.multi .slot-vid{ height:clamp(200px,38vh,480px) !important; }
+}
+@media(min-width:900px){
+  #players-wrap.multi .slot-vid{ height:clamp(300px,44vh,560px)!important; }
+}
+@media(min-width:1200px){
+  #players-wrap.multi .slot-vid{ height:clamp(360px,46vh,620px)!important; }
+}
+/* Active slot indicator ring */
+.pslot.active-slot::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border:2px solid var(--r);
+  pointer-events:none;
+  z-index:30;
+}
+/* Slot label badge */
+.slot-label{
+  position:absolute;
+  top:6px;left:6px;
+  background:rgba(233,69,96,.85);
+  color:#fff;font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:10px;
+  z-index:25;pointer-events:none;
+  display:none;
+}
+#players-wrap.multi .slot-label{display:block;}
+
+/* VIDEO inside each slot — single screen heights */
+.slot-vid{
+  width:100%;display:block;
+  height:clamp(175px,34vh,500px);
+  background:#000;object-fit:contain;
+}
+@media(min-width:600px){
+  .slot-vid{height:clamp(260px,42vh,560px)!important;}
+}
+@media(min-width:900px){
+  .slot-vid{height:clamp(380px,48vh,660px)!important;}
+}
+@media(min-width:1200px){
+  .slot-vid{height:clamp(460px,52vh,740px)!important;}
+}
+/* Multi screen heights are handled per breakpoint below in the MULTI-SCREEN section */
+
+/* CONTROLS per slot */
+.cbar{
+  position:absolute;bottom:0;left:0;right:0;padding:6px 8px;
+  background:linear-gradient(transparent,rgba(0,0,0,.92));
+  display:flex;align-items:center;gap:6px;z-index:10;
+}
+.cb{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:13px;
   flex-shrink:0;user-select:none;}
 .cb:active{transform:scale(.87);background:rgba(233,69,96,.5);}
-#qw{position:relative;}
-#qbtn{border-radius:7px!important;width:auto!important;padding:0 9px;font-size:11px;font-weight:700;}
-#qmenu{display:none;position:absolute;bottom:42px;left:0;background:#1a1a28;
-  border:1px solid var(--br);border-radius:8px;overflow:hidden;min-width:90px;z-index:300;}
-#qmenu.open{display:block;}
-.qo{padding:8px 13px;font-size:12px;cursor:pointer;white-space:nowrap;}
+#qw,#qw2{position:relative;}
+.qbtn{border-radius:7px!important;width:auto!important;padding:0 8px;font-size:10px;font-weight:700;}
+.qmenu{display:none;position:absolute;bottom:40px;left:0;background:#1a1a28;
+  border:1px solid var(--br);border-radius:8px;overflow:hidden;min-width:85px;z-index:300;}
+.qmenu.open{display:block;}
+.qo{padding:7px 12px;font-size:11px;cursor:pointer;white-space:nowrap;}
 .qo:hover,.qo:active{background:rgba(233,69,96,.18);}
 .qo.active{color:var(--r);font-weight:700;}
-#netlbl{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--mt);flex-shrink:0;}
-#livlbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--r);}
+.netlbl{font-size:10px;padding:2px 5px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--mt);flex-shrink:0;}
+.livlbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--r);}
 
-/* STATE */
-#vst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+/* MULTI-SCREEN toggle button — special style */
+#msbtn{
+  border-radius:7px!important;width:auto!important;padding:0 9px;
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+  background:rgba(255,255,255,.12);border:none;
+  color:#fff;cursor:pointer;height:32px;flex-shrink:0;
+}
+#msbtn.ms-on{
+  background:rgba(233,69,96,.3)!important;
+  border:1px solid rgba(233,69,96,.6)!important;
+  color:var(--r)!important;
+}
+#msbtn:active{transform:scale(.9);}
+
+/* Select-screen highlight when clicking in multi mode */
+.pslot.pick-me{ cursor:pointer; }
+
+/* STATE per slot */
+.vst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   text-align:center;pointer-events:none;z-index:15;width:85%;}
-#spin{width:32px;height:32px;border:3px solid rgba(233,69,96,.18);border-top-color:var(--r);
-  border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 7px;}
+.spin{width:28px;height:28px;border:3px solid rgba(233,69,96,.18);border-top-color:var(--r);
+  border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 6px;}
 @keyframes sp{to{transform:rotate(360deg)}}
-#stxt{font-size:12px;color:var(--mt);}
-#ssub{font-size:10px;color:#444;margin-top:3px;}
-#vst.h{display:none;}
-#fovbar{display:none;position:absolute;top:0;left:0;right:0;z-index:16;
+.stxt{font-size:11px;color:var(--mt);}
+.ssub{font-size:10px;color:#444;margin-top:3px;}
+.vst.h{display:none;}
+.fovbar{display:none;position:absolute;top:0;left:0;right:0;z-index:16;
   background:rgba(233,69,96,.14);border-bottom:1px solid rgba(233,69,96,.25);
-  padding:5px 12px;font-size:11px;color:var(--r);text-align:center;}
+  padding:4px 10px;font-size:11px;color:var(--r);text-align:center;}
 
 /* iPhone play overlay */
-#iplay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
+.iplay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
   background:rgba(0,0,0,.55);z-index:20;flex-direction:column;gap:10px;cursor:pointer;}
-#iplay.show{display:flex;}
-#iplay-ic{width:56px;height:56px;background:rgba(233,69,96,.9);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:24px;}
-#iplay-tx{color:#ccc;font-size:12px;}
+.iplay.show{display:flex;}
+.iplay-ic{width:50px;height:50px;background:rgba(233,69,96,.9);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:22px;}
+.iplay-tx{color:#ccc;font-size:11px;}
+
+/* FULLSCREEN (CSS-based) */
+html.fsm,body.fsm{overflow:hidden!important;width:100vw!important;height:100vh!important;}
+body.fsm #app{display:flex!important;position:fixed!important;inset:0!important;z-index:99990!important;flex-direction:column!important;background:#000!important;}
+body.fsm #hdr    {display:none!important;}
+body.fsm #catbar {display:none!important;}
+body.fsm #tabs   {display:none!important;}
+body.fsm #content{display:none!important;}
+/* fullscreen single: fill entire space */
+body.fsm #players-wrap{flex:1!important;position:relative!important;width:100vw!important;height:100%!important;min-height:0!important;}
+body.fsm #players-wrap:not(.multi) .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+/* fullscreen multi: side by side, each fills full height */
+body.fsm #players-wrap.multi{flex-direction:row!important;}
+body.fsm #players-wrap.multi .pslot{flex:1!important;min-width:0!important;height:100%!important;position:relative!important;}
+body.fsm #players-wrap.multi .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+body.fsm .cbar{position:absolute!important;bottom:0!important;left:0!important;right:0!important;z-index:100000!important;background:linear-gradient(transparent,rgba(0,0,0,.92))!important;padding:8px 14px!important;}
+
+#fs-hint{display:none;position:fixed;top:12px;right:14px;z-index:100003;background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);font-size:11px;padding:4px 10px;border-radius:20px;pointer-events:none;align-items:center;gap:5px;}
+body.fsm #fs-hint{display:flex!important;}
+
+/* PORTRAIT LANDSCAPE LOCK */
+/* Single screen portrait: fills available height nicely */
+body.rot #players-wrap{ background:#000; }
+
+/* Multi screen in landscape-locked portrait: left/right side by side */
+body.rot #players-wrap.multi{
+  flex-direction:row !important;
+}
+body.rot #players-wrap.multi .pslot{
+  flex:1 !important;
+  min-width:0 !important;
+}
+/* In landscape orientation (portrait-lock), height is the shorter dimension */
+body.rot #players-wrap.multi .slot-vid{
+  height:clamp(140px,45vw,380px) !important;
+}
+
+/* PiP overlay */
+#pip-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:50;cursor:pointer;}
+#pip-overlay.show{display:flex;}
+#pip-overlay-icon{font-size:36px;}
+#pip-overlay-txt{font-size:12px;color:var(--mt);text-align:center;padding:0 20px;}
+#pip-overlay-btn{padding:8px 20px;background:var(--r);color:#fff;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;}
+#pipbtn.hidden{display:none;}
 
 /* CAT FILTER */
-#catbar{flex-shrink:0;display:flex;gap:6px;padding:7px 10px;
-  overflow-x:auto;background:var(--c1);border-bottom:1px solid var(--br);}
+#catbar{flex-shrink:0;display:flex;gap:6px;padding:7px 10px;overflow-x:auto;background:var(--c1);border-bottom:1px solid var(--br);}
 #catbar::-webkit-scrollbar{display:none;}
-.cfbtn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--br);
-  background:transparent;color:var(--mt);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.cfbtn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--br);background:transparent;color:var(--mt);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .cfbtn.on{background:rgba(233,69,96,.15);border-color:rgba(233,69,96,.4);color:var(--r);}
 .cfbtn:active{transform:scale(.95);}
 
 /* TABS */
 #tabs{flex-shrink:0;display:flex;border-bottom:1px solid var(--br);background:var(--c1);}
-.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;
-  color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
 .tab.on{color:var(--r);border-bottom-color:var(--r);}
 
 /* CONTENT */
@@ -155,21 +221,24 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 #content::-webkit-scrollbar{width:3px;}
 #content::-webkit-scrollbar-thumb{background:var(--br);border-radius:3px;}
 #chlist{padding:7px;}
-.chi{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;
-  cursor:pointer;border:1px solid transparent;margin-bottom:5px;}
+.chi{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;cursor:pointer;border:1px solid transparent;margin-bottom:5px;}
 .chi:active{background:var(--c2);}
 .chi.pl{background:rgba(233,69,96,.09);border-color:rgba(233,69,96,.28);}
-.chiico{width:36px;height:36px;border-radius:7px;background:var(--c2);
-  display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.chi.pl2{background:rgba(100,140,255,.09);border-color:rgba(100,140,255,.28);}
+.chiico{width:36px;height:36px;border-radius:7px;background:var(--c2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
 .chi.pl .chiico{background:rgba(233,69,96,.18);}
+.chi.pl2 .chiico{background:rgba(100,140,255,.18);}
 .chinf{flex:1;min-width:0;}
 .chtit{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chi.pl .chtit{color:var(--r);}
+.chi.pl2 .chtit{color:#6496ff;}
 .chcat{font-size:10px;color:var(--mt);margin-top:1px;}
-.livbg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;
-  background:rgba(233,69,96,.13);color:var(--r);border:1px solid rgba(233,69,96,.28);flex-shrink:0;}
-.errbg{font-size:9px;padding:2px 6px;border-radius:4px;
-  background:rgba(80,80,80,.2);color:#555;border:1px solid #2a2a2a;flex-shrink:0;}
+.livbg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(233,69,96,.13);color:var(--r);border:1px solid rgba(233,69,96,.28);flex-shrink:0;}
+.errbg{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(80,80,80,.2);color:#555;border:1px solid #2a2a2a;flex-shrink:0;}
+
+/* multi indicator in channel list */
+.slot1-badge{font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(233,69,96,.2);color:var(--r);border:1px solid rgba(233,69,96,.3);flex-shrink:0;}
+.slot2-badge{font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(100,140,255,.2);color:#6496ff;border:1px solid rgba(100,140,255,.3);flex-shrink:0;}
 
 /* INFO */
 #infopan{padding:13px;}
@@ -181,12 +250,243 @@ body.rot #cbar{position:relative;flex-shrink:0;}
 .sd{width:6px;height:6px;border-radius:50%;background:var(--r);animation:bl 1.4s infinite;}
 
 /* LOADING SCREEN */
-#ldscr{position:fixed;inset:0;background:var(--dk);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;z-index:999999;gap:14px;}
+#ldscr{position:fixed;inset:0;background:var(--dk);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;gap:14px;}
 .lsi{font-size:48px;}
-.lss{width:28px;height:28px;border:3px solid rgba(233,69,96,.2);border-top-color:var(--r);
-  border-radius:50%;animation:sp .75s linear infinite;}
+.lss{width:28px;height:28px;border:3px solid rgba(233,69,96,.2);border-top-color:var(--r);border-radius:50%;animation:sp .75s linear infinite;}
 .lst{font-size:13px;color:var(--mt);}
+
+  /* ── MULTI-SCREEN LAYOUT ────────────────────────────────────── */
+#players-wrap{
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+  background:#000;
+  position:relative;
+}
+
+/* Each player slot */
+.pslot{
+  position:relative;
+  background:#000;
+  flex:1;
+  min-height:0;
+}
+/* Single slot: hide slot2 */
+#players-wrap:not(.multi) .pslot:nth-child(2){
+  display:none;
+}
+
+/* MOBILE multi (< 600px): Screen1 top, Screen2 bottom */
+@media(max-width:599px){
+  #players-wrap.multi{ flex-direction:column; }
+  #players-wrap.multi .pslot{ flex:none; width:100%; }
+  #players-wrap.multi .slot-vid{ height:clamp(120px,26vh,280px) !important; }
+}
+
+/* DESKTOP multi (>= 600px): Screen1 left, Screen2 right */
+@media(min-width:600px){
+  #players-wrap.multi{ flex-direction:row; }
+  #players-wrap.multi .pslot{ flex:1; min-width:0; }
+  #players-wrap.multi .slot-vid{ height:clamp(200px,38vh,480px) !important; }
+}
+@media(min-width:900px){
+  #players-wrap.multi .slot-vid{ height:clamp(300px,44vh,560px)!important; }
+}
+@media(min-width:1200px){
+  #players-wrap.multi .slot-vid{ height:clamp(360px,46vh,620px)!important; }
+}
+/* Active slot indicator ring */
+.pslot.active-slot::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border:2px solid var(--r);
+  pointer-events:none;
+  z-index:30;
+}
+/* Slot label badge */
+.slot-label{
+  position:absolute;
+  top:6px;left:6px;
+  background:rgba(233,69,96,.85);
+  color:#fff;font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:10px;
+  z-index:25;pointer-events:none;
+  display:none;
+}
+#players-wrap.multi .slot-label{display:block;}
+
+/* VIDEO inside each slot — single screen heights */
+.slot-vid{
+  width:100%;display:block;
+  height:clamp(175px,34vh,500px);
+  background:#000;object-fit:contain;
+}
+@media(min-width:600px){
+  .slot-vid{height:clamp(260px,42vh,560px)!important;}
+}
+@media(min-width:900px){
+  .slot-vid{height:clamp(380px,48vh,660px)!important;}
+}
+@media(min-width:1200px){
+  .slot-vid{height:clamp(460px,52vh,740px)!important;}
+}
+/* Multi screen heights are handled per breakpoint below in the MULTI-SCREEN section */
+
+/* CONTROLS per slot */
+.cbar{
+  position:absolute;bottom:0;left:0;right:0;padding:6px 8px;
+  background:linear-gradient(transparent,rgba(0,0,0,.92));
+  display:flex;align-items:center;gap:6px;z-index:10;
+}
+.cb{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:13px;
+  flex-shrink:0;user-select:none;}
+.cb:active{transform:scale(.87);background:rgba(233,69,96,.5);}
+#qw,#qw2{position:relative;}
+.qbtn{border-radius:7px!important;width:auto!important;padding:0 8px;font-size:10px;font-weight:700;}
+.qmenu{display:none;position:absolute;bottom:40px;left:0;background:#1a1a28;
+  border:1px solid var(--br);border-radius:8px;overflow:hidden;min-width:85px;z-index:300;}
+.qmenu.open{display:block;}
+.qo{padding:7px 12px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.qo:hover,.qo:active{background:rgba(233,69,96,.18);}
+.qo.active{color:var(--r);font-weight:700;}
+.netlbl{font-size:10px;padding:2px 5px;border-radius:4px;background:rgba(255,255,255,.07);color:var(--mt);flex-shrink:0;}
+.livlbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:1px;color:var(--r);}
+
+/* MULTI-SCREEN toggle button — special style */
+#msbtn{
+  border-radius:7px!important;width:auto!important;padding:0 9px;
+  font-size:10px;font-weight:700;letter-spacing:.3px;
+  background:rgba(255,255,255,.12);border:none;
+  color:#fff;cursor:pointer;height:32px;flex-shrink:0;
+}
+#msbtn.ms-on{
+  background:rgba(233,69,96,.3)!important;
+  border:1px solid rgba(233,69,96,.6)!important;
+  color:var(--r)!important;
+}
+#msbtn:active{transform:scale(.9);}
+
+/* Select-screen highlight when clicking in multi mode */
+.pslot.pick-me{ cursor:pointer; }
+
+/* STATE per slot */
+.vst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;z-index:15;width:85%;}
+.spin{width:28px;height:28px;border:3px solid rgba(233,69,96,.18);border-top-color:var(--r);
+  border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 6px;}
+@keyframes sp{to{transform:rotate(360deg)}}
+.stxt{font-size:11px;color:var(--mt);}
+.ssub{font-size:10px;color:#444;margin-top:3px;}
+.vst.h{display:none;}
+.fovbar{display:none;position:absolute;top:0;left:0;right:0;z-index:16;
+  background:rgba(233,69,96,.14);border-bottom:1px solid rgba(233,69,96,.25);
+  padding:4px 10px;font-size:11px;color:var(--r);text-align:center;}
+
+/* iPhone play overlay */
+.iplay{display:none;position:absolute;inset:0;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);z-index:20;flex-direction:column;gap:10px;cursor:pointer;}
+.iplay.show{display:flex;}
+.iplay-ic{width:50px;height:50px;background:rgba(233,69,96,.9);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:22px;}
+.iplay-tx{color:#ccc;font-size:11px;}
+
+/* FULLSCREEN (CSS-based) */
+html.fsm,body.fsm{overflow:hidden!important;width:100vw!important;height:100vh!important;}
+body.fsm #app{display:flex!important;position:fixed!important;inset:0!important;z-index:99990!important;flex-direction:column!important;background:#000!important;}
+body.fsm #hdr    {display:none!important;}
+body.fsm #catbar {display:none!important;}
+body.fsm #tabs   {display:none!important;}
+body.fsm #content{display:none!important;}
+/* fullscreen single: fill entire space */
+body.fsm #players-wrap{flex:1!important;position:relative!important;width:100vw!important;height:100%!important;min-height:0!important;}
+body.fsm #players-wrap:not(.multi) .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+/* fullscreen multi: side by side, each fills full height */
+body.fsm #players-wrap.multi{flex-direction:row!important;}
+body.fsm #players-wrap.multi .pslot{flex:1!important;min-width:0!important;height:100%!important;position:relative!important;}
+body.fsm #players-wrap.multi .slot-vid{position:absolute!important;top:0!important;left:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}
+body.fsm .cbar{position:absolute!important;bottom:0!important;left:0!important;right:0!important;z-index:100000!important;background:linear-gradient(transparent,rgba(0,0,0,.92))!important;padding:8px 14px!important;}
+
+#fs-hint{display:none;position:fixed;top:12px;right:14px;z-index:100003;background:rgba(0,0,0,.6);color:rgba(255,255,255,.55);font-size:11px;padding:4px 10px;border-radius:20px;pointer-events:none;align-items:center;gap:5px;}
+body.fsm #fs-hint{display:flex!important;}
+
+/* PORTRAIT LANDSCAPE LOCK */
+/* Single screen portrait: fills available height nicely */
+body.rot #players-wrap{ background:#000; }
+
+/* Multi screen in landscape-locked portrait: left/right side by side */
+body.rot #players-wrap.multi{
+  flex-direction:row !important;
+}
+body.rot #players-wrap.multi .pslot{
+  flex:1 !important;
+  min-width:0 !important;
+}
+/* In landscape orientation (portrait-lock), height is the shorter dimension */
+body.rot #players-wrap.multi .slot-vid{
+  height:clamp(140px,45vw,380px) !important;
+}
+
+/* PiP overlay */
+#pip-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.85);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:50;cursor:pointer;}
+#pip-overlay.show{display:flex;}
+#pip-overlay-icon{font-size:36px;}
+#pip-overlay-txt{font-size:12px;color:var(--mt);text-align:center;padding:0 20px;}
+#pip-overlay-btn{padding:8px 20px;background:var(--r);color:#fff;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;}
+#pipbtn.hidden{display:none;}
+
+/* CAT FILTER */
+#catbar{flex-shrink:0;display:flex;gap:6px;padding:7px 10px;overflow-x:auto;background:var(--c1);border-bottom:1px solid var(--br);}
+#catbar::-webkit-scrollbar{display:none;}
+.cfbtn{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--br);background:transparent;color:var(--mt);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.cfbtn.on{background:rgba(233,69,96,.15);border-color:rgba(233,69,96,.4);color:var(--r);}
+.cfbtn:active{transform:scale(.95);}
+
+/* TABS */
+#tabs{flex-shrink:0;display:flex;border-bottom:1px solid var(--br);background:var(--c1);}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:12px;font-weight:600;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;}
+.tab.on{color:var(--r);border-bottom-color:var(--r);}
+
+/* CONTENT */
+#content{flex:1;overflow-y:auto;}
+#content::-webkit-scrollbar{width:3px;}
+#content::-webkit-scrollbar-thumb{background:var(--br);border-radius:3px;}
+#chlist{padding:7px;}
+.chi{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;cursor:pointer;border:1px solid transparent;margin-bottom:5px;}
+.chi:active{background:var(--c2);}
+.chi.pl{background:rgba(233,69,96,.09);border-color:rgba(233,69,96,.28);}
+.chi.pl2{background:rgba(100,140,255,.09);border-color:rgba(100,140,255,.28);}
+.chiico{width:36px;height:36px;border-radius:7px;background:var(--c2);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.chi.pl .chiico{background:rgba(233,69,96,.18);}
+.chi.pl2 .chiico{background:rgba(100,140,255,.18);}
+.chinf{flex:1;min-width:0;}
+.chtit{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chi.pl .chtit{color:var(--r);}
+.chi.pl2 .chtit{color:#6496ff;}
+.chcat{font-size:10px;color:var(--mt);margin-top:1px;}
+.livbg{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(233,69,96,.13);color:var(--r);border:1px solid rgba(233,69,96,.28);flex-shrink:0;}
+.errbg{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(80,80,80,.2);color:#555;border:1px solid #2a2a2a;flex-shrink:0;}
+
+/* multi indicator in channel list */
+.slot1-badge{font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(233,69,96,.2);color:var(--r);border:1px solid rgba(233,69,96,.3);flex-shrink:0;}
+.slot2-badge{font-size:9px;padding:2px 5px;border-radius:4px;background:rgba(100,140,255,.2);color:#6496ff;border:1px solid rgba(100,140,255,.3);flex-shrink:0;}
+
+/* INFO */
+#infopan{padding:13px;}
+.ir{display:flex;gap:8px;margin-bottom:9px;}
+.il{font-size:11px;color:var(--mt);width:78px;flex-shrink:0;}
+.iv{font-size:13px;font-weight:600;}
+.dv{height:1px;background:var(--br);margin:9px 0;}
+.sl{display:inline-flex;align-items:center;gap:5px;color:var(--r);}
+.sd{width:6px;height:6px;border-radius:50%;background:var(--r);animation:bl 1.4s infinite;}
+
+/* LOADING SCREEN */
+#ldscr{position:fixed;inset:0;background:var(--dk);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999999;gap:14px;}
+.lsi{font-size:48px;}
+.lss{width:28px;height:28px;border:3px solid rgba(233,69,96,.2);border-top-color:var(--r);border-radius:50%;animation:sp .75s linear infinite;}
+.lst{font-size:13px;color:var(--mt);}
+
 
 /* TOAST */
 #toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
